@@ -513,6 +513,8 @@
   .bon-notice.cancelled { background: var(--white); color: var(--primary); border: 1px solid var(--primary); }
   .bon-notice.ready { background: var(--paid-bg); color: var(--paid); }
   .bon .btn-light { border-color: var(--border); }
+  .hint { font-size: 12px; color: var(--text-2); margin-top: 5px; }
+  .card-text { margin: 0 0 12px; font-size: 13px; color: var(--text-2); line-height: 1.4; }
   .owner-bar {
     padding-bottom: 14px;
     margin-bottom: 4px;
@@ -533,7 +535,7 @@
     <div class="agenda-head">
       <div>
         <div class="date-small" id="agenda-date"></div>
-        <h1>Bonjour</h1>
+        <h1 id="agenda-hello">Bonjour</h1>
       </div>
     </div>
 
@@ -717,7 +719,50 @@
   </main>
   <main class="screen" id="screen-plus" data-screen="plus" hidden>
     <div class="agenda-head"><div><h1>Réglages</h1></div></div>
-    <div class="placeholder">Les réglages arrivent à la tâche 6.</div>
+
+    <form id="settings-form" novalidate autocomplete="off">
+      <div class="card">
+        <p class="section-label">Ma pâtisserie</p>
+        <div class="field" data-field="prenom">
+          <label for="s-prenom">Votre prénom</label>
+          <input class="input" id="s-prenom" placeholder="Ex. Salma" autocapitalize="words">
+          <div class="hint">Affiché sur l'agenda : « Bonjour Salma ».</div>
+        </div>
+        <div class="field" data-field="nom">
+          <label for="s-nom">Nom de la pâtisserie</label>
+          <input class="input" id="s-nom" placeholder="Ex. Salma Pâtisserie">
+          <div class="hint">En tête du bon de commande et dans les messages WhatsApp.</div>
+        </div>
+        <div class="field" data-field="whatsapp">
+          <label for="s-whatsapp">Numéro WhatsApp de la pâtisserie</label>
+          <input class="input" id="s-whatsapp" type="tel" inputmode="tel" placeholder="06 12 34 56 78">
+          <div class="hint">Pour le bouton « Une question ? » du bon de commande.</div>
+          <div class="error-msg">Numéro invalide (ex. 06 12 34 56 78 ou +212 6 12 34 56 78).</div>
+        </div>
+        <div class="field" data-field="adresse" style="margin-bottom: 16px">
+          <label for="s-adresse">Adresse de retrait</label>
+          <textarea class="input" id="s-adresse" rows="2" placeholder="Ex. 12 rue des Orangers, Maârif, Casablanca"></textarea>
+          <div class="hint">Indiquée sur le bon pour les commandes à retirer.</div>
+        </div>
+        <button type="submit" class="btn btn-primary">Enregistrer les réglages</button>
+      </div>
+    </form>
+
+    <div class="card">
+      <p class="section-label">Mes données</p>
+      <p class="card-text">Les données sont enregistrées uniquement dans ce navigateur. Exportez-les régulièrement pour en garder une copie.</p>
+      <button class="btn btn-light" id="data-export">Exporter mes données</button>
+      <button class="btn btn-light" id="data-import">Importer</button>
+      <input type="file" id="data-import-file" accept="application/json,.json" hidden>
+    </div>
+
+    <div class="card">
+      <p class="section-label">Prototype</p>
+      <button class="btn btn-light" id="data-samples">Charger 5 commandes d'exemple</button>
+      <button class="btn btn-danger-outline" id="data-clear-orders">Effacer les commandes</button>
+      <button class="btn btn-danger-outline" id="data-clear">Tout effacer</button>
+      <p class="hint" style="text-align: center; margin-top: 8px">Une sauvegarde JSON est téléchargée automatiquement avant chaque effacement ou import.</p>
+    </div>
   </main>
 
   <!-- Bouton flottant -->
@@ -781,8 +826,11 @@ const Store = {
     this.saveAll(orders);
     return orders.find(o => String(o.id) === String(id));
   },
+  nextId() {
+    return Number(localStorage.getItem(KEYS.nextId)) || 101;
+  },
   add(order) {
-    const id = Number(localStorage.getItem(KEYS.nextId)) || 101;
+    const id = this.nextId();
     const saved = { ...order, id, createdAt: new Date().toISOString() };
     this.saveAll([...this.all(), saved]);
     localStorage.setItem(KEYS.nextId, String(id + 1));
@@ -829,6 +877,16 @@ function toast(message) {
   requestAnimationFrame(() => el.classList.remove('hide'));
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.add('hide'), 3000);
+}
+
+/* Télécharge un fichier généré dans la page */
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
 /* Fenêtre de confirmation (en bas de l'écran). Renvoie une promesse : true si confirmé. */
@@ -1311,6 +1369,8 @@ const Detail = (() => {
     const rank = sameClient.filter(x => x.id <= o.id).length;
     const initials = o.cliente.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
     const wa = whatsapp(o);
+    const shopName = Settings.get().nom.trim();
+    if (shopName) wa.text += `\n— ${shopName}`;   // signature de la pâtisserie
     const waUrl = `https://wa.me/${waNumber(o.telephone)}?text=${encodeURIComponent(wa.text)}`;
 
     body.innerHTML = `
@@ -1649,14 +1709,7 @@ const Bon = (() => {
     return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
   }
 
-  function download(blob, filename) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  }
+  const download = downloadBlob;
 
   async function share() {
     if (!current) return;
@@ -1692,6 +1745,200 @@ const Bon = (() => {
   });
 
   return { render, icsFor, makePNG };
+})();
+
+/* =========================================================
+   Écran Réglages (onglet « Plus »)
+   ========================================================= */
+const Reglages = (() => {
+  const $ = id => document.getElementById(id);
+  const form = $('settings-form');
+  const EXPORT_APP = 'carnet-patisserie';
+
+  function render() {
+    const s = Settings.get();
+    $('s-prenom').value = s.prenom;
+    $('s-nom').value = s.nom;
+    $('s-whatsapp').value = s.whatsapp ? formatPhone(s.whatsapp) : '';
+    $('s-adresse').value = s.adresse;
+    form.querySelectorAll('.field.invalid').forEach(f => f.classList.remove('invalid'));
+  }
+
+  form.addEventListener('input', e => e.target.closest('.field')?.classList.remove('invalid'));
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const rawPhone = $('s-whatsapp').value.trim();
+    const phone = rawPhone ? normalizePhone(rawPhone) : '';
+    if (rawPhone && !phone) {
+      form.querySelector('[data-field="whatsapp"]').classList.add('invalid');
+      toast('Vérifiez le numéro WhatsApp.');
+      return;
+    }
+    try {
+      Settings.save({
+        prenom: $('s-prenom').value.trim(),
+        nom: $('s-nom').value.trim(),
+        whatsapp: phone,
+        adresse: $('s-adresse').value.trim(),
+      });
+    } catch {
+      toast("Impossible d'enregistrer : mémoire du navigateur pleine.");
+      return;
+    }
+    render();
+    toast('Réglages enregistrés');
+  });
+
+  /* ---------- 5 commandes d'exemple (dates calculées à partir d'aujourd'hui) ---------- */
+  function sampleOrders() {
+    const t = todayISO();
+    const base = { produitDetail: '', photo: null, adresse: '', paye: false };
+    return [
+      { ...base, cliente: 'Fatima Bennani', telephone: '0612345678', produit: 'Gâteau', date: t, heure: '11:00', personnes: 20,
+        details: 'Vanille fraises, rose et doré, couronne.\n« Joyeux anniversaire Lina, 5 ans »\nSans fruits à coque.',
+        prix: 650, acompte: 300, mode: 'retrait', statut: 'preparation' },
+      { ...base, cliente: 'Nadia Kettani', telephone: '0661234567', produit: 'Plateau salé', date: t, heure: '14:30', personnes: 30,
+        details: '2 plateaux : briouates, pastilla mini, msemen farci.', prix: 480, acompte: 480, mode: 'livraison',
+        adresse: 'Maârif, rue Ibnou Mounir, imm. 12, 3e étage', statut: 'prete' },
+      { ...base, cliente: 'Yasmine Rami', telephone: '0677889900', produit: 'Gâteau', date: t, heure: '17:00', personnes: 60,
+        details: 'Gâteau de fiançailles 3 étages, crème au beurre, fleurs fraîches blanches.', prix: 1500, acompte: 600,
+        mode: 'livraison', adresse: 'Gauthier, bd Moulay Youssef, villa 8', statut: 'confirmee' },
+      { ...base, cliente: 'Mme Alaoui', telephone: '0522334455', produit: 'Pâtisserie marocaine', date: addDaysISO(t, 1), heure: '18:30',
+        personnes: null, details: 'Cornes de gazelle 2 kg, boîte cadeau.', prix: 500, acompte: 300, mode: 'retrait', statut: 'confirmee' },
+      { ...base, cliente: 'Khadija Mansouri', telephone: '0655443322', produit: 'Autre', produitDetail: 'Cupcakes ×24', date: addDaysISO(t, -1),
+        heure: '16:00', personnes: null, details: 'Thème licorne, rose et blanc.', prix: 360, acompte: 100, mode: 'retrait', statut: 'prete' },
+    ];
+  }
+
+  $('data-samples').addEventListener('click', () => {
+    try {
+      sampleOrders().forEach(o => Store.add(o));
+    } catch {
+      toast('Mémoire du navigateur pleine.');
+      return;
+    }
+    toast("5 commandes d'exemple ajoutées");
+    go('agenda');
+  });
+
+  /* ---------- Export / import (JSON) ---------- */
+  // Télécharge toutes les données actuelles en JSON ; renvoie le nombre de commandes exportées
+  function exportData(filename) {
+    const data = {
+      app: EXPORT_APP,
+      version: 1,
+      exporteLe: new Date().toISOString(),
+      reglages: Settings.get(),
+      prochainNumero: Store.nextId(),
+      commandes: Store.all(),
+    };
+    downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), filename);
+    return data.commandes.length;
+  }
+
+  function hasData() {
+    return Object.values(KEYS).some(k => localStorage.getItem(k) !== null);
+  }
+
+  // Sauvegarde automatique avant une action destructive (import, effacement)
+  function backupBeforeAction(reason) {
+    if (!hasData()) return false;
+    const now = new Date();
+    const time = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2, '0')).join('-');
+    exportData(`sauvegarde-avant-${reason}-${todayISO()}-${time}.json`);
+    return true;
+  }
+
+  $('data-export').addEventListener('click', () => {
+    const n = exportData(`carnet-patisserie-${todayISO()}.json`);
+    toast(`${n} commande(s) exportée(s)`);
+  });
+
+  // Vérifie que le fichier ressemble bien à un export de l'app
+  function parseExport(text) {
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error("Ce fichier n'est pas un fichier JSON valide."); }
+    if (!data || data.app !== EXPORT_APP || !Array.isArray(data.commandes)) {
+      throw new Error("Ce fichier n'est pas un export de l'application.");
+    }
+    const ok = o => o && o.id != null && typeof o.cliente === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.date)
+      && /^\d{2}:\d{2}$/.test(o.heure) && typeof o.prix === 'number';
+    if (!data.commandes.every(ok)) throw new Error('Certaines commandes du fichier sont incomplètes.');
+    return data;
+  }
+
+  $('data-import').addEventListener('click', () => $('data-import-file').click());
+  $('data-import-file').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    let data;
+    try {
+      data = parseExport(await file.text());
+    } catch (err) {
+      toast(err.message);
+      return;
+    }
+    const current = Store.all().length;
+    const ok = await confirmDialog({
+      title: 'Remplacer toutes les données ?',
+      text: `Le fichier contient ${data.commandes.length} commande(s). Les ${current} commande(s) et les réglages actuels seront remplacés. Une sauvegarde des données actuelles sera d'abord téléchargée.`,
+      ok: 'Oui, remplacer',
+      cancel: 'Annuler',
+    });
+    if (!ok) return;
+    const savedBefore = backupBeforeAction('import');
+
+    const backup = { ...localStorage };   // pour revenir en arrière si l'enregistrement échoue
+    try {
+      Store.saveAll(data.commandes);
+      const maxId = Math.max(100, ...data.commandes.map(o => Number(o.id) || 0));
+      localStorage.setItem(KEYS.nextId, String(Math.max(Number(data.prochainNumero) || 0, maxId + 1)));
+      localStorage.setItem(KEYS.settings, JSON.stringify({ ...Settings.DEFAULTS, ...(data.reglages || {}) }));
+    } catch {
+      Object.values(KEYS).forEach(k => k in backup ? localStorage.setItem(k, backup[k]) : localStorage.removeItem(k));
+      toast("Import impossible : mémoire du navigateur pleine. Rien n'a été modifié.");
+      return;
+    }
+    render();
+    toast(`${data.commandes.length} commande(s) importée(s)` + (savedBefore ? ' — sauvegarde téléchargée' : ''));
+  });
+
+  /* ---------- Effacement ---------- */
+  // Les commandes seules : les réglages et la numérotation sont conservés
+  $('data-clear-orders').addEventListener('click', async () => {
+    const n = Store.all().length;
+    if (!n) { toast('Aucune commande à effacer'); return; }
+    const ok = await confirmDialog({
+      title: 'Effacer les commandes ?',
+      text: `Les ${n} commande(s) seront supprimées de ce navigateur. Vos réglages sont conservés. Une sauvegarde sera d'abord téléchargée.`,
+      ok: 'Oui, effacer les commandes',
+      cancel: 'Annuler',
+    });
+    if (!ok) return;
+    backupBeforeAction('effacement');
+    localStorage.removeItem(KEYS.orders);
+    toast('Commandes effacées — sauvegarde téléchargée');
+  });
+
+  // Tout : commandes, réglages et numérotation (repart à #101)
+  $('data-clear').addEventListener('click', async () => {
+    if (!hasData()) { toast('Aucune donnée à effacer'); return; }
+    const ok = await confirmDialog({
+      title: 'Tout effacer ?',
+      text: `Les ${Store.all().length} commande(s) et les réglages seront supprimés de ce navigateur, et la numérotation repartira à #101. Une sauvegarde sera d'abord téléchargée.`,
+      ok: 'Oui, tout effacer',
+      cancel: 'Annuler',
+    });
+    if (!ok) return;
+    backupBeforeAction('effacement');
+    Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+    render();
+    toast('Toutes les données ont été effacées — sauvegarde téléchargée');
+  });
+
+  return { render };
 })();
 
 /* =========================================================
@@ -1732,12 +1979,15 @@ function replaceRoute(name, id) {
 let currentScreen = null;
 const onEnter = {
   agenda() {
+    const prenom = Settings.get().prenom.trim();
+    document.getElementById('agenda-hello').textContent = prenom ? `Bonjour ${prenom}` : 'Bonjour';
     document.getElementById('agenda-date').textContent =
       new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
     Agenda.render();
   },
   nouvelle() { OrderForm.reset(); },
   modifier(id) { OrderForm.edit(id); },
+  plus() { Reglages.render(); },
   detail(id) { Detail.render(id); },
   bon(id) { Bon.render(id); },
 };
