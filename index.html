@@ -491,6 +491,35 @@
   .bon-head h1 { margin: 0; font-size: 22px; font-weight: 700; }
   .bon-head p { margin: 4px 0 0; color: var(--text-2); font-size: 13px; }
   .bon-foot { text-align: center; color: var(--text-2); font-size: 12px; margin-top: 24px; }
+  .bon .card { border-color: transparent; border-radius: var(--r-lg); padding: 16px; }
+  .bon-title { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .bon-title h2 { margin: 0; font-size: 16px; font-weight: 700; }
+  .bon-title span { color: var(--text-2); font-size: 13px; }
+  .bon .rows { grid-template-columns: 82px 1fr; font-size: 14px; }
+  .bon .rows dd { font-weight: 500; }
+  .bon .rows dd.strong { font-weight: 700; }
+  .bon-total { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; padding: 4px 0; }
+  .bon-total .num { font-weight: 700; }
+  .bon-total.acompte { color: var(--paid); }
+  .bon-total.reste { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 14px; font-weight: 700; }
+  .bon-total.reste .num { font-size: 26px; }
+  .bon-total.settled { color: var(--paid); }
+  .bon-notice {
+    border-radius: var(--r-md);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    font-weight: 600; font-size: 14px; text-align: center;
+  }
+  .bon-notice.cancelled { background: var(--white); color: var(--primary); border: 1px solid var(--primary); }
+  .bon-notice.ready { background: var(--paid-bg); color: var(--paid); }
+  .bon .btn-light { border-color: var(--border); }
+  .owner-bar {
+    padding-bottom: 14px;
+    margin-bottom: 4px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .owner-bar p { margin: 6px 0 0; text-align: center; font-size: 12px; color: var(--text-2); }
+  .btn[disabled] { opacity: .6; cursor: progress; }
 
   .proto-note { font-size: 12px; color: var(--text-2); text-align: center; margin-top: 12px; }
 </style>
@@ -666,16 +695,15 @@
       <div class="topbar-title">Aperçu côté cliente</div>
       <span></span>
     </div>
-    <div class="bon-head">
-      <div class="avatar">P</div>
-      <h1>[Nom de la pâtisserie]</h1>
-      <p>Merci pour votre commande</p>
+    <!-- Réservé à la pâtissière : n'apparaît pas sur l'image partagée -->
+    <div class="owner-bar" id="bon-share-bar">
+      <button class="btn btn-primary" id="bon-share">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
+        Partager en image
+      </button>
+      <p>Envoie une image du bon à la cliente (WhatsApp…). Ce bouton n'apparaît pas sur l'image.</p>
     </div>
-    <div class="card">
-      <p class="section-label">Bon de commande</p>
-      <div class="placeholder" id="bon-placeholder">Le récapitulatif arrive à la tâche 5.</div>
-    </div>
-    <p class="bon-foot">Vous recevrez un message quand votre commande sera prête.</p>
+    <div id="bon-body"></div>
   </main>
 
   <!-- ============ ÉCRANS SECONDAIRES (barre du bas) ============ -->
@@ -723,7 +751,19 @@
 /* =========================================================
    Données (localStorage)
    ========================================================= */
-const KEYS = { orders: 'patisserie.commandes', nextId: 'patisserie.prochainNumero' };
+const KEYS = { orders: 'patisserie.commandes', nextId: 'patisserie.prochainNumero', settings: 'patisserie.reglages' };
+
+// Réglages de la pâtisserie (l'écran pour les modifier arrive à la tâche 6)
+const Settings = {
+  DEFAULTS: { nom: '', prenom: '', whatsapp: '', adresse: '' },
+  get() {
+    try { return { ...this.DEFAULTS, ...JSON.parse(localStorage.getItem(KEYS.settings)) }; }
+    catch { return { ...this.DEFAULTS }; }
+  },
+  save(values) {
+    localStorage.setItem(KEYS.settings, JSON.stringify({ ...this.get(), ...values }));
+  },
+};
 
 const Store = {
   all() {
@@ -788,7 +828,7 @@ function toast(message) {
   el.textContent = message;
   requestAnimationFrame(() => el.classList.remove('hide'));
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.add('hide'), 2600);
+  toastTimer = setTimeout(() => el.classList.add('hide'), 3000);
 }
 
 /* Fenêtre de confirmation (en bas de l'écran). Renvoie une promesse : true si confirmé. */
@@ -1012,8 +1052,8 @@ const OrderForm = (() => {
       if (depth > 0) history.back();
       else replaceRoute('detail', order.id);
     } else {
-      toast(`Commande #${order.id} enregistrée`);
-      replaceRoute('bon', order.id);   // le retour depuis le bon ramène à l'agenda, pas au formulaire
+      toast('Commande enregistrée');
+      replaceRoute('detail', order.id);   // le retour depuis le détail ramène à l'agenda, pas au formulaire
     }
   });
 
@@ -1353,6 +1393,308 @@ const Detail = (() => {
 })();
 
 /* =========================================================
+   Écran Bon de commande (ce que voit la cliente)
+   ========================================================= */
+const Bon = (() => {
+  const body = document.getElementById('bon-body');
+  let current = null;
+
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  // "Mer. 7 octobre à 11:00"
+  function longWhen(o) {
+    const day = parseDate(o.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' });
+    return `${capitalize(day)} à ${o.heure}`;
+  }
+
+  // Fichier calendrier (.ics) pour "Ajouter à mon calendrier"
+  function icsFor(o, s) {
+    const esc = t => String(t).replace(/\\/g, '\\\\').replace(/[,;]/g, m => '\\' + m).replace(/\n/g, '\\n');
+    const stamp = (date, time) => date.replace(/-/g, '') + 'T' + time.replace(':', '') + '00';
+    const [h, m] = o.heure.split(':').map(Number);
+    const endMin = h * 60 + m + 30;
+    const endDate = endMin >= 1440 ? addDaysISO(o.date, 1) : o.date;
+    const endTime = `${String(Math.floor(endMin % 1440 / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+    const shop = s.nom || 'la pâtisserie';
+    const what = o.mode === 'livraison' ? 'Livraison' : 'Retrait';
+    const lieu = o.mode === 'livraison' ? o.adresse : s.adresse;
+    const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    return [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Carnet patisserie//FR', 'CALSCALE:GREGORIAN',
+      'BEGIN:VEVENT',
+      `UID:commande-${o.id}-${o.date}@carnet-patisserie`,
+      `DTSTAMP:${now}`,
+      `DTSTART:${stamp(o.date, o.heure)}`,
+      `DTEND:${stamp(endDate, endTime)}`,
+      `SUMMARY:${esc(`${what} : ${orderTitle(o)} (${shop})`)}`,
+      lieu ? `LOCATION:${esc(lieu)}` : null,
+      `DESCRIPTION:${esc(`Commande n°${o.id}\nReste à régler : ${formatDH(resteDu(o))}`)}`,
+      'END:VEVENT', 'END:VCALENDAR',
+    ].filter(Boolean).join('\r\n');
+  }
+
+  // Contenu du bon, partagé entre la page et l'image PNG
+  function model(o, s) {
+    const livraison = o.mode === 'livraison';
+    const cancelled = isCancelled(o);
+    const reste = resteDu(o);
+
+    const rows = [{ label: 'Produit', value: orderTitle(o), strong: true }];
+    if (o.personnes) rows.push({ label: 'Pour', value: `${o.personnes} personnes` });
+    if (o.details) rows.push({ label: 'Détails', value: o.details });
+    rows.push({ label: livraison ? 'Livraison' : 'Retrait', value: longWhen(o), strong: true });
+    rows.push({ label: 'Adresse', value: livraison ? (o.adresse || '—') : (s.adresse || '[Adresse de la boutique]') });
+
+    const totals = cancelled ? [] : [
+      { label: 'Total', value: formatDH(o.prix) },
+      ...(o.acompte > 0 ? [{ label: 'Acompte versé', value: formatDH(o.acompte), kind: 'acompte' }] : []),
+      reste > 0
+        ? { label: `Reste à régler ${livraison ? 'à la livraison' : 'au retrait'}`, value: formatDH(reste), kind: 'reste' }
+        : { label: 'Commande entièrement réglée', value: '✓', kind: 'settled' },
+    ];
+
+    let notice = null;
+    let foot = 'Vous recevrez un message quand votre commande sera prête.';
+    if (cancelled) { notice = { text: 'Cette commande a été annulée.', kind: 'cancelled' }; foot = ''; }
+    else if (o.statut === 'prete') { notice = { text: 'Votre commande est prête !', kind: 'ready' }; foot = ''; }
+    else if (o.statut === 'remise') { foot = 'Merci pour votre confiance, à bientôt !'; }
+
+    return {
+      id: o.id,
+      nom: s.nom || '[Nom de la pâtisserie]',
+      initial: (s.nom || 'P').trim().charAt(0).toUpperCase(),
+      merci: `Merci pour votre commande, ${o.cliente.split(/\s+/)[0]}`,
+      notice, rows, totals, foot,
+    };
+  }
+
+  function render(id) {
+    const o = Store.get(id);
+    const s = Settings.get();
+    current = o;
+    document.getElementById('bon-share-bar').hidden = !o;
+    if (!o) {
+      body.innerHTML = `<div class="empty"><strong>Commande introuvable</strong>Elle a peut-être été supprimée.</div>`;
+      return;
+    }
+
+    const m = model(o, s);
+    const shopPhone = normalizePhone(s.whatsapp || '');
+    const question = `Bonjour, j'ai une question sur ma commande n°${o.id} (${orderTitle(o)}, ${longWhen(o)}).`;
+    const canAddToCalendar = !isCancelled(o) && o.date >= todayISO() && o.statut !== 'remise';
+    const totalCls = { acompte: ' acompte', reste: ' reste', settled: ' reste settled' };
+
+    body.innerHTML = `
+      <div class="bon-head">
+        <div class="avatar">${escapeHTML(m.initial)}</div>
+        <h1>${escapeHTML(m.nom)}</h1>
+        <p>${escapeHTML(m.merci)}</p>
+      </div>
+
+      ${m.notice ? `<div class="bon-notice ${m.notice.kind}">${m.notice.text}</div>` : ''}
+
+      <div class="card">
+        <div class="bon-title"><h2>Bon de commande</h2><span>#${m.id}</span></div>
+        <dl class="rows">${m.rows.map(r => `<dt>${r.label}</dt><dd class="detail-text${r.strong ? ' strong' : ''}">${escapeHTML(r.value)}</dd>`).join('')}</dl>
+      </div>
+
+      ${m.totals.length ? `<div class="card">${m.totals.map(t =>
+        `<div class="bon-total${totalCls[t.kind] || ''}"><span>${escapeHTML(t.label)}</span><span class="num">${escapeHTML(t.value)}</span></div>`).join('')}</div>` : ''}
+
+      ${canAddToCalendar ? '<button class="btn btn-dark" data-action="ics">Ajouter à mon calendrier</button>' : ''}
+      ${shopPhone
+        ? `<a class="btn btn-light" href="https://wa.me/${waNumber(shopPhone)}?text=${encodeURIComponent(question)}" target="_blank" rel="noopener">Une question ? Écrire sur WhatsApp</a>`
+        : ''}
+
+      ${m.foot ? `<p class="bon-foot">${m.foot}</p>` : ''}
+    `;
+  }
+
+  /* ---------- Image PNG du bon (dessinée sur un canvas, sans les boutons) ---------- */
+  const C = {
+    primary: '#A3214E', text: '#241A1D', text2: '#6B5E62', soft: '#F8EFF1', border: '#EADDE0',
+    paid: '#1F6B4F', paidBg: '#E2F2EA', white: '#FFFFFF',
+  };
+  const TITLE = '"Bricolage Grotesque", Figtree, sans-serif';
+  const TEXT = 'Figtree, system-ui, sans-serif';
+
+  // Découpe un texte en lignes qui tiennent dans maxWidth (respecte les retours à la ligne)
+  function wrap(ctx, text, maxWidth) {
+    const lines = [];
+    String(text).split('\n').forEach(par => {
+      let line = '';
+      par.split(/\s+/).forEach(word => {
+        const test = line ? line + ' ' + word : word;
+        if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = word; }
+        else line = test;
+      });
+      lines.push(line);
+    });
+    return lines;
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  }
+
+  // Dessine le bon ; renvoie la hauteur utilisée. Avec draw=false, mesure seulement.
+  function paint(ctx, m, W, draw) {
+    const P = 20;              // marge extérieure
+    const CP = 18;             // marge intérieure des cartes
+    const inner = W - 2 * P - 2 * CP;
+    let y = 32;
+    const text = (t, x, yy, font, color, align = 'left') => {
+      if (!draw) return;
+      ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(t, x, yy);
+    };
+
+    if (draw) { ctx.fillStyle = C.soft; ctx.fillRect(0, 0, W, ctx.canvas.height); }
+
+    // En-tête
+    if (draw) { ctx.beginPath(); ctx.arc(W / 2, y + 26, 26, 0, Math.PI * 2); ctx.fillStyle = C.primary; ctx.fill(); }
+    if (draw) { ctx.font = `700 22px ${TITLE}`; ctx.fillStyle = C.white; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(m.initial, W / 2, y + 27); }
+    y += 52 + 14;
+    ctx.font = `700 23px ${TITLE}`;
+    wrap(ctx, m.nom, W - 2 * P).forEach(l => { y += 26; text(l, W / 2, y, `700 23px ${TITLE}`, C.text, 'center'); });
+    y += 22;
+    text(m.merci, W / 2, y, `400 14px ${TEXT}`, C.text2, 'center');
+    y += 20;
+
+    // Bandeau (prête / annulée)
+    if (m.notice) {
+      const h = 46;
+      if (draw) {
+        if (m.notice.kind === 'ready') roundRect(ctx, P, y, W - 2 * P, h, 14, C.paidBg);
+        else roundRect(ctx, P + .5, y + .5, W - 2 * P - 1, h - 1, 14, C.white, C.primary);
+      }
+      text(m.notice.text, W / 2, y + 29, `600 15px ${TEXT}`, m.notice.kind === 'ready' ? C.paid : C.primary, 'center');
+      y += h + 12;
+    }
+
+    // Carte récapitulatif : on mesure d'abord sa hauteur
+    const labelW = 86;
+    const valueW = inner - labelW;
+    const LH = 21;
+    const rowsLaidOut = m.rows.map(r => {
+      ctx.font = `${r.strong ? 700 : 500} 15px ${TEXT}`;
+      return { ...r, lines: wrap(ctx, r.value, valueW) };
+    });
+    const cardH = CP + 24 + 14 + rowsLaidOut.reduce((s, r) => s + r.lines.length * LH + 9, 0) - 9 + CP;
+    if (draw) roundRect(ctx, P, y, W - 2 * P, cardH, 18, C.white);
+    let cy = y + CP + 18;
+    text('Bon de commande', P + CP, cy, `700 17px ${TITLE}`, C.text);
+    text('#' + m.id, W - P - CP, cy, `400 14px ${TEXT}`, C.text2, 'right');
+    cy += 6 + 14;
+    rowsLaidOut.forEach(r => {
+      text(r.label, P + CP, cy + 15, `400 15px ${TEXT}`, C.text2);
+      r.lines.forEach((l, i) => text(l, P + CP + labelW, cy + 15 + i * LH, `${r.strong ? 700 : 500} 15px ${TEXT}`, C.text));
+      cy += r.lines.length * LH + 9;
+    });
+    y += cardH + 12;
+
+    // Carte montants
+    if (m.totals.length) {
+      const rowsH = m.totals.map(t => (t.kind === 'reste' || t.kind === 'settled') ? 58 : 28);
+      const totH = CP + rowsH.reduce((a, b) => a + b, 0) + CP - 4;
+      if (draw) roundRect(ctx, P, y, W - 2 * P, totH, 18, C.white);
+      let ty = y + CP;
+      m.totals.forEach((t, i) => {
+        if (t.kind === 'reste' || t.kind === 'settled') {
+          if (draw) { ctx.fillStyle = C.border; ctx.fillRect(P + CP, ty + 6, inner, 1); }
+          const color = t.kind === 'settled' ? C.paid : C.text;
+          text(t.label, P + CP, ty + 42, `700 15px ${TEXT}`, color);
+          text(t.value, W - P - CP, ty + 45, `700 28px ${TITLE}`, color, 'right');
+        } else {
+          const color = t.kind === 'acompte' ? C.paid : C.text;
+          text(t.label, P + CP, ty + 18, `400 15px ${TEXT}`, color);
+          text(t.value, W - P - CP, ty + 18, `700 15px ${TITLE}`, color, 'right');
+        }
+        ty += rowsH[i];
+      });
+      y += totH + 12;
+    }
+
+    // Pied de page
+    if (m.foot) {
+      ctx.font = `400 13px ${TEXT}`;
+      wrap(ctx, m.foot, W - 2 * P).forEach(l => { y += 18; text(l, W / 2, y, `400 13px ${TEXT}`, C.text2, 'center'); });
+    }
+    return y + 28;
+  }
+
+  async function makePNG(o) {
+    // S'assure que les polices sont chargées avant de dessiner
+    try {
+      await Promise.all([
+        document.fonts.load(`700 20px "Bricolage Grotesque"`),
+        document.fonts.load(`400 15px Figtree`), document.fonts.load(`500 15px Figtree`),
+        document.fonts.load(`600 15px Figtree`), document.fonts.load(`700 15px Figtree`),
+      ]);
+    } catch { /* hors ligne : polices de secours */ }
+
+    const m = model(o, Settings.get());
+    const W = 390, SCALE = 3;   // image de 1170 px de large, nette sur téléphone
+    const measure = document.createElement('canvas').getContext('2d');
+    const H = Math.ceil(paint(measure, m, W, false));
+    const canvas = document.createElement('canvas');
+    canvas.width = W * SCALE;
+    canvas.height = H * SCALE;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(SCALE, SCALE);
+    paint(ctx, m, W, true);
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  }
+
+  function download(blob, filename) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  async function share() {
+    if (!current) return;
+    const btn = document.getElementById('bon-share');
+    btn.disabled = true;
+    try {
+      const blob = await makePNG(current);
+      const filename = `bon-commande-${current.id}.png`;
+      const file = new File([blob], filename, { type: 'image/png' });
+      // Téléphone : partage natif (WhatsApp, etc.). Sinon : téléchargement.
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: `Bon de commande #${current.id}` });
+        } catch (err) {
+          if (err.name !== 'AbortError') { download(blob, filename); toast('Partage impossible : image téléchargée'); }
+        }
+      } else {
+        download(blob, filename);
+        toast('Image du bon téléchargée');
+      }
+    } catch {
+      toast("Impossible de créer l'image");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('bon-share').addEventListener('click', share);
+
+  body.addEventListener('click', e => {
+    if (!e.target.closest('[data-action="ics"]') || !current) return;
+    download(new Blob([icsFor(current, Settings.get())], { type: 'text/calendar;charset=utf-8' }), `commande-${current.id}.ics`);
+  });
+
+  return { render, icsFor, makePNG };
+})();
+
+/* =========================================================
    Navigation
    Les écrans sont pilotés par le "hash" de l'URL :
    #agenda, #nouvelle, #detail/ID, #bon/ID, #clientes, #paiements, #plus
@@ -1397,13 +1739,7 @@ const onEnter = {
   nouvelle() { OrderForm.reset(); },
   modifier(id) { OrderForm.edit(id); },
   detail(id) { Detail.render(id); },
-  bon(id) {
-    // Provisoire (le vrai bon arrive à la tâche 5) : confirme que la commande est bien enregistrée
-    const o = id && Store.get(id);
-    document.getElementById('bon-placeholder').innerHTML = o
-      ? `Commande <strong>#${o.id}</strong> enregistrée pour <strong>${escapeHTML(o.cliente)}</strong> — ${formatDH(o.prix)}.<br>Le récapitulatif complet arrive à la tâche 5.`
-      : 'Le récapitulatif arrive à la tâche 5.';
-  },
+  bon(id) { Bon.render(id); },
 };
 
 function render() {
