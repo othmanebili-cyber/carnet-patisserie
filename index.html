@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#A3214E">
+<title>Carnet — Commandes pâtisserie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #A3214E;
+    --primary-dark: #8A1B42;
+    --text: #241A1D;
+    --text-2: #6B5E62;
+    --soft: #F8EFF1;
+    --border: #EADDE0;
+    --paid: #1F6B4F;
+    --paid-bg: #E2F2EA;
+    --due: #7A4B00;
+    --due-bg: #FFF1D1;
+    --ink: #241A1D;          /* boutons sombres */
+    --whatsapp: #0B6B4B;
+    --white: #FFFFFF;
+    --r-sm: 12px;
+    --r-md: 14px;
+    --r-lg: 18px;
+    --font-title: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+    --font-text: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: var(--font-text);
+    font-size: 15px;
+    color: var(--text);
+    background: #EDEBEA;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  h1, h2, h3, .num { font-family: var(--font-title); }
+
+  /* ---------- Cadre "téléphone" ---------- */
+  .app {
+    position: relative;
+    max-width: 430px;
+    height: 100vh;
+    height: 100dvh;
+    margin: 0 auto;
+    background: var(--white);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  @media (min-width: 520px) {
+    body { padding: 24px 0; }
+    .app {
+      height: calc(100dvh - 48px);
+      max-height: 860px;
+      border-radius: 28px;
+      box-shadow: 0 10px 40px rgba(36, 26, 29, .12), 0 0 0 1px rgba(36, 26, 29, .04);
+    }
+  }
+
+  .screen {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px 16px 24px;
+  }
+  .screen[hidden] { display: none; }
+
+  /* ---------- Barre du haut ---------- */
+  .topbar {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    min-height: 44px;
+    margin: -4px -4px 12px;
+  }
+  .topbar-title {
+    text-align: center;
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .icon-btn {
+    width: 44px; height: 44px;
+    display: grid; place-items: center;
+    border: 0; background: transparent;
+    border-radius: var(--r-sm);
+  }
+  .icon-btn:active { background: var(--soft); }
+  .icon-btn.outlined { border: 1px solid var(--border); background: var(--white); }
+  .icon-btn svg { width: 20px; height: 20px; }
+
+  /* ---------- Agenda ---------- */
+  .agenda-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .date-small { color: var(--primary); font-size: 13px; font-weight: 500; text-transform: capitalize; }
+  .agenda-head h1 { margin: 2px 0 0; font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+
+  .summary {
+    background: var(--primary);
+    color: var(--white);
+    border-radius: var(--r-lg);
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .summary .num { font-size: 24px; font-weight: 700; line-height: 1.1; }
+  .summary .lbl { font-size: 12px; opacity: .92; line-height: 1.25; margin-top: 4px; }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: var(--soft);
+    border-radius: var(--r-md);
+    padding: 4px;
+    margin-bottom: 14px;
+  }
+  .tab {
+    min-height: 40px;
+    border: 0; background: transparent;
+    border-radius: 10px;
+    font-size: 14px; font-weight: 500;
+    color: var(--text-2);
+  }
+  .tab.active { background: var(--white); color: var(--text); box-shadow: 0 1px 3px rgba(36, 26, 29, .08); }
+
+  .order-list { display: flex; flex-direction: column; gap: 10px; }
+  .order-card {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 14px 12px;
+  }
+  .order-card:active { background: var(--soft); }
+  .order-time { text-align: center; }
+  .order-time .num { font-size: 18px; font-weight: 700; }
+  .order-time .mode { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+  .order-title { font-weight: 700; font-size: 15px; font-family: var(--font-title); }
+  .order-sub { color: var(--text-2); font-size: 13px; margin: 2px 0 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .chip {
+    display: inline-flex; align-items: center;
+    font-size: 12px; font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--soft);
+    color: var(--text-2);
+  }
+  .chip.paid { background: var(--paid-bg); color: var(--paid); }
+  .chip.due { background: var(--due-bg); color: var(--due); }
+
+  .fab {
+    position: absolute;
+    right: 16px;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    display: inline-flex; align-items: center; gap: 10px;
+    min-height: 52px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: var(--r-md);
+    background: var(--ink);
+    color: var(--white);
+    font-weight: 600; font-size: 15px;
+    box-shadow: 0 6px 18px rgba(36, 26, 29, .25);
+  }
+  .fab svg { width: 18px; height: 18px; }
+
+  /* ---------- Barre de navigation du bas ---------- */
+  .bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--border);
+    background: var(--white);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .bottom-nav[hidden] { display: none; }
+  .nav-item {
+    min-height: 52px;
+    border: 0; background: transparent;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    font-size: 11px; font-weight: 500;
+    color: var(--text-2);
+  }
+  .nav-item svg { width: 22px; height: 22px; }
+  .nav-item.active { color: var(--primary); font-weight: 700; }
+
+  /* ---------- Cartes / sections communes ---------- */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .section-label {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--text-2);
+    margin: 0 0 10px;
+  }
+  .rows { display: grid; grid-template-columns: 96px 1fr; gap: 8px 12px; font-size: 14px; }
+  .rows dt { color: var(--text-2); }
+  .rows dd { margin: 0; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%;
+    min-height: 48px;
+    padding: 0 16px;
+    border-radius: var(--r-md);
+    border: 1px solid transparent;
+    font-weight: 600; font-size: 15px;
+    text-decoration: none;
+  }
+  .btn svg { width: 18px; height: 18px; }
+  .btn-primary { background: var(--primary); color: var(--white); }
+  .btn-primary:active { background: var(--primary-dark); }
+  .btn-dark { background: var(--ink); color: var(--white); }
+  .btn-outline { background: var(--white); color: var(--text); border-color: var(--text); }
+  .btn-light { background: var(--white); color: var(--text); border-color: var(--border); }
+  .btn-whatsapp { background: var(--whatsapp); color: var(--white); }
+  .btn + .btn { margin-top: 10px; }
+
+  .placeholder {
+    border: 1px dashed var(--border);
+    border-radius: var(--r-md);
+    background: var(--soft);
+    color: var(--text-2);
+    padding: 24px 16px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  /* ---------- Détail ---------- */
+  .detail-title { font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+  .detail-sub { color: var(--text-2); font-size: 13px; margin: 4px 0 14px; }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 16px; }
+  .step { font-size: 11px; color: var(--text-2); }
+  .step::before { content: ""; display: block; height: 4px; border-radius: 4px; background: var(--border); margin-bottom: 6px; }
+  .step.done { color: var(--text); font-weight: 600; }
+  .step.done::before { background: var(--primary); }
+  .photo-box {
+    display: grid; place-items: center; gap: 8px;
+    min-height: 150px;
+    background: var(--soft);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    color: var(--text-2);
+    font-size: 13px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .photo-box svg { width: 28px; height: 28px; color: var(--primary); }
+  .pay-row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; }
+  .pay-row .num { font-weight: 700; }
+  .due-box {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--due-bg); color: var(--due);
+    border-radius: var(--r-sm);
+    padding: 12px 14px;
+    margin: 10px 0 12px;
+    font-weight: 600; font-size: 14px;
+  }
+  .due-box .num { font-size: 22px; font-weight: 700; }
+
+  /* ---------- Nouvelle commande ---------- */
+  .field { margin-bottom: 14px; }
+  .field label, .field .label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .input {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--white);
+    font: inherit;
+    color: var(--text);
+  }
+  .input:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: transparent; }
+
+  /* ---------- Bon client ---------- */
+  .screen.bon { background: var(--soft); }
+  .bon-head { text-align: center; padding: 12px 0 16px; }
+  .avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: grid; place-items: center;
+    margin: 0 auto 10px;
+    background: var(--primary); color: var(--white);
+    font-family: var(--font-title); font-weight: 700; font-size: 20px;
+  }
+  .bon-head h1 { margin: 0; font-size: 22px; font-weight: 700; }
+  .bon-head p { margin: 4px 0 0; color: var(--text-2); font-size: 13px; }
+  .bon-foot { text-align: center; color: var(--text-2); font-size: 12px; margin-top: 24px; }
+
+  .proto-note { font-size: 12px; color: var(--text-2); text-align: center; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ============ AGENDA ============ -->
+  <main class="screen" id="screen-agenda" data-screen="agenda">
+    <div class="agenda-head">
+      <div>
+        <div class="date-small" id="agenda-date"></div>
+        <h1>Bonjour</h1>
+      </div>
+      <button class="icon-btn outlined" aria-label="Rechercher">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      </button>
+    </div>
+
+    <div class="summary">
+      <div><div class="num">–</div><div class="lbl">commandes aujourd'hui</div></div>
+      <div><div class="num">–</div><div class="lbl">livraisons</div></div>
+      <div><div class="num">–</div><div class="lbl">DH à encaisser</div></div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" role="tab">Aujourd'hui</button>
+      <button class="tab" role="tab">Demain</button>
+      <button class="tab" role="tab">Semaine</button>
+    </div>
+
+    <div class="order-list">
+      <!-- Carte d'exemple pour tester la navigation (remplacée par les vraies commandes à la tâche 3) -->
+      <button class="order-card" data-go="detail">
+        <div class="order-time"><div class="num">11:00</div><div class="mode">Retrait</div></div>
+        <div>
+          <div class="order-title">Commande d'exemple</div>
+          <div class="order-sub">Touchez pour ouvrir le détail</div>
+          <div class="chips"><span class="chip due">Reste – DH</span><span class="chip">Confirmée</span></div>
+        </div>
+      </button>
+    </div>
+    <p class="proto-note">Les vraies commandes s'afficheront ici (tâche 3).</p>
+    <div style="height: 72px"></div>
+  </main>
+
+  <!-- ============ NOUVELLE COMMANDE ============ -->
+  <main class="screen" id="screen-nouvelle" data-screen="nouvelle" hidden>
+    <div class="topbar">
+      <button class="icon-btn" data-back aria-label="Fermer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+      <div class="topbar-title">Nouvelle commande</div>
+      <span></span>
+    </div>
+    <div class="field">
+      <label for="f-cliente">Cliente</label>
+      <input class="input" id="f-cliente" placeholder="Nom de la cliente">
+    </div>
+    <div class="placeholder">Le formulaire complet arrive à la tâche 2.</div>
+    <div style="height: 16px"></div>
+    <button class="btn btn-primary" data-go="bon">Enregistrer et envoyer le bon à la cliente</button>
+  </main>
+
+  <!-- ============ DÉTAIL COMMANDE ============ -->
+  <main class="screen" id="screen-detail" data-screen="detail" hidden>
+    <div class="topbar">
+      <button class="icon-btn" data-back aria-label="Retour">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="topbar-title">Commande #—</div>
+      <span></span>
+    </div>
+    <h2 class="detail-title">Commande d'exemple</h2>
+    <p class="detail-sub">Aujourd'hui, 11:00 · Retrait</p>
+    <div class="steps">
+      <div class="step done">Confirmée</div>
+      <div class="step">En préparation</div>
+      <div class="step">Prête</div>
+      <div class="step">Remise</div>
+    </div>
+    <div class="photo-box">
+      <div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16M5 21v-7h14v7M7 14v-3h10v3M12 11V7M12 5v.01"/></svg>
+        <div>Photo modèle envoyée par la cliente</div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="section-label">Paiement</p>
+      <div class="pay-row"><span>Total</span><span class="num">– DH</span></div>
+      <div class="pay-row"><span>Acompte</span><span class="num">– DH</span></div>
+      <div class="due-box"><span>Reste à payer</span><span class="num">– DH</span></div>
+      <button class="btn btn-outline">Marquer comme payé</button>
+    </div>
+    <button class="btn btn-light" data-go="bon">Voir le bon de commande client</button>
+    <p class="proto-note">Infos, statut et WhatsApp arrivent à la tâche 4.</p>
+  </main>
+
+  <!-- ============ BON DE COMMANDE CLIENT ============ -->
+  <main class="screen bon" id="screen-bon" data-screen="bon" hidden>
+    <div class="topbar">
+      <button class="icon-btn" data-back aria-label="Retour">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="topbar-title">Aperçu côté cliente</div>
+      <span></span>
+    </div>
+    <div class="bon-head">
+      <div class="avatar">P</div>
+      <h1>[Nom de la pâtisserie]</h1>
+      <p>Merci pour votre commande</p>
+    </div>
+    <div class="card">
+      <p class="section-label">Bon de commande</p>
+      <div class="placeholder">Le récapitulatif arrive à la tâche 5.</div>
+    </div>
+    <p class="bon-foot">Vous recevrez un message quand votre commande sera prête.</p>
+  </main>
+
+  <!-- ============ ÉCRANS SECONDAIRES (barre du bas) ============ -->
+  <main class="screen" id="screen-clientes" data-screen="clientes" hidden>
+    <div class="agenda-head"><div><h1>Clientes</h1></div></div>
+    <div class="placeholder">Bientôt disponible.</div>
+  </main>
+  <main class="screen" id="screen-paiements" data-screen="paiements" hidden>
+    <div class="agenda-head"><div><h1>Paiements</h1></div></div>
+    <div class="placeholder">Bientôt disponible.</div>
+  </main>
+  <main class="screen" id="screen-plus" data-screen="plus" hidden>
+    <div class="agenda-head"><div><h1>Réglages</h1></div></div>
+    <div class="placeholder">Les réglages arrivent à la tâche 6.</div>
+  </main>
+
+  <!-- Bouton flottant -->
+  <button class="fab" id="fab" data-go="nouvelle">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    Nouvelle commande
+  </button>
+
+  <!-- Barre de navigation -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="nav-item" data-go="agenda">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+      Agenda
+    </button>
+    <button class="nav-item" data-go="clientes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.5 3.3-5.5 6.5-5.5s5.9 2 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.8 2.6 3 5.2"/></svg>
+      Clientes
+    </button>
+    <button class="nav-item" data-go="paiements">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>
+      Paiements
+    </button>
+    <button class="nav-item" data-go="plus">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      Plus
+    </button>
+  </nav>
+</div>
+
+<script>
+/* =========================================================
+   Navigation
+   Les écrans sont pilotés par le "hash" de l'URL :
+   #agenda, #nouvelle, #detail, #bon, #clientes, #paiements, #plus
+   (plus tard : #detail/ID et #bon/ID)
+   Le bouton retour du navigateur/téléphone fonctionne donc naturellement.
+   ========================================================= */
+const MAIN_TABS = ['agenda', 'clientes', 'paiements', 'plus'];   // écrans avec barre du bas
+const SCREENS = [...MAIN_TABS, 'nouvelle', 'detail', 'bon'];
+
+function parseRoute() {
+  const [name, id] = location.hash.replace(/^#\/?/, '').split('/');
+  return { name: SCREENS.includes(name) ? name : 'agenda', id: id || null };
+}
+
+function go(name, id) {
+  location.hash = id ? `${name}/${id}` : name;
+}
+
+// Profondeur de navigation dans l'app, mémorisée dans chaque entrée d'historique.
+// Permet au bouton "retour" de revenir à l'écran précédent sans jamais sortir de l'app.
+let depth = 0;
+
+function back() {
+  if (depth > 0) history.back();
+  else go('agenda');
+}
+
+function render() {
+  const route = parseRoute();
+  document.querySelectorAll('[data-screen]').forEach(el => {
+    el.hidden = el.dataset.screen !== route.name;
+  });
+  const isMain = MAIN_TABS.includes(route.name);
+  document.getElementById('bottom-nav').hidden = !isMain;
+  document.getElementById('fab').hidden = route.name !== 'agenda';
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.go === route.name);
+  });
+  const screen = document.getElementById('screen-' + route.name);
+  if (screen) screen.scrollTop = 0;
+}
+
+document.addEventListener('click', e => {
+  const goEl = e.target.closest('[data-go]');
+  if (goEl) {
+    go(goEl.dataset.go, goEl.dataset.id);
+    return;
+  }
+  if (e.target.closest('[data-back]')) back();
+});
+
+window.addEventListener('hashchange', () => {
+  // Nouvelle entrée : on lui attribue une profondeur. Entrée existante (retour arrière) : on relit la sienne.
+  if (history.state && typeof history.state.depth === 'number') depth = history.state.depth;
+  else history.replaceState({ depth: ++depth }, '');
+  render();
+});
+
+history.replaceState({ depth: 0 }, '');
+
+/* Date du jour en en-tête de l'agenda */
+document.getElementById('agenda-date').textContent =
+  new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+render();
+</script>
+</body>
+</html>
