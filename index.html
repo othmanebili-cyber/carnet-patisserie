@@ -153,6 +153,27 @@
   .order-sub { color: var(--text-2); font-size: 13px; margin: 2px 0 8px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
+  .order-card.done { opacity: .6; }
+  .order-card.late { border-color: var(--primary); box-shadow: inset 4px 0 0 var(--primary); }
+  .order-card.late .order-time .mode { color: var(--primary); font-weight: 700; }
+  .chip.late { background: var(--primary); color: var(--white); }
+  .day-label {
+    font-size: 12px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-2);
+    margin: 8px 2px -2px;
+  }
+  .day-label:first-child { margin-top: 0; }
+  .empty {
+    text-align: center;
+    color: var(--text-2);
+    font-size: 14px;
+    padding: 32px 16px;
+    border: 1px dashed var(--border);
+    border-radius: var(--r-md);
+  }
+  .empty strong { display: block; color: var(--text); font-family: var(--font-title); font-size: 16px; margin-bottom: 4px; }
+
   .chip {
     display: inline-flex; align-items: center;
     font-size: 12px; font-weight: 600;
@@ -414,35 +435,21 @@
         <div class="date-small" id="agenda-date"></div>
         <h1>Bonjour</h1>
       </div>
-      <button class="icon-btn outlined" aria-label="Rechercher">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      </button>
     </div>
 
     <div class="summary">
-      <div><div class="num">–</div><div class="lbl">commandes aujourd'hui</div></div>
-      <div><div class="num">–</div><div class="lbl">livraisons</div></div>
-      <div><div class="num">–</div><div class="lbl">DH à encaisser</div></div>
+      <div><div class="num" id="sum-count">0</div><div class="lbl" id="sum-count-lbl">commandes aujourd'hui</div></div>
+      <div><div class="num" id="sum-deliveries">0</div><div class="lbl">livraisons</div></div>
+      <div><div class="num" id="sum-due">0</div><div class="lbl">DH à encaisser</div></div>
     </div>
 
-    <div class="tabs" role="tablist">
-      <button class="tab active" role="tab">Aujourd'hui</button>
-      <button class="tab" role="tab">Demain</button>
-      <button class="tab" role="tab">Semaine</button>
+    <div class="tabs" role="tablist" id="agenda-tabs">
+      <button class="tab active" role="tab" data-range="today">Aujourd'hui</button>
+      <button class="tab" role="tab" data-range="tomorrow">Demain</button>
+      <button class="tab" role="tab" data-range="week">Semaine</button>
     </div>
 
-    <div class="order-list">
-      <!-- Carte d'exemple pour tester la navigation (remplacée par les vraies commandes à la tâche 3) -->
-      <button class="order-card" data-go="detail">
-        <div class="order-time"><div class="num">11:00</div><div class="mode">Retrait</div></div>
-        <div>
-          <div class="order-title">Commande d'exemple</div>
-          <div class="order-sub">Touchez pour ouvrir le détail</div>
-          <div class="chips"><span class="chip due">Reste – DH</span><span class="chip">Confirmée</span></div>
-        </div>
-      </button>
-    </div>
-    <p class="proto-note">Les vraies commandes s'afficheront ici (tâche 3).</p>
+    <div class="order-list" id="order-list"></div>
     <div style="height: 72px"></div>
   </main>
 
@@ -897,6 +904,141 @@ const OrderForm = (() => {
 })();
 
 /* =========================================================
+   Helpers commandes
+   ========================================================= */
+const STATUTS = {
+  confirmee: 'Confirmée',
+  preparation: 'En préparation',
+  prete: 'Prête',
+  remise: 'Remise',
+};
+
+function orderTitle(o) {
+  return o.produit === 'Autre' && o.produitDetail ? o.produitDetail : o.produit;
+}
+
+function resteDu(o) {
+  return o.paye ? 0 : Math.max(0, o.prix - o.acompte);
+}
+
+// "AAAA-MM-JJ" -> Date locale à minuit
+function parseDate(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function addDaysISO(iso, n) {
+  const d = parseDate(iso);
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+// "Mer. 8 octobre" / "Aujourd'hui" / "Demain"
+function dayLabel(iso) {
+  const today = todayISO();
+  if (iso === today) return "Aujourd'hui";
+  if (iso === addDaysISO(today, 1)) return 'Demain';
+  return parseDate(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+/* =========================================================
+   Écran Agenda
+   ========================================================= */
+const Agenda = (() => {
+  const $ = id => document.getElementById(id);
+  let range = 'today';
+
+  const RANGES = {
+    today:    { days: [0],                   label: "commandes aujourd'hui", empty: "Aucune commande aujourd'hui" },
+    tomorrow: { days: [1],                   label: 'commandes demain',      empty: 'Aucune commande demain' },
+    week:     { days: [0, 1, 2, 3, 4, 5, 6], label: 'commandes sur 7 jours', empty: 'Aucune commande sur les 7 prochains jours' },
+  };
+
+  // Commande passée qui n'est pas terminée (pas encore remise, ou reste à payer)
+  function isLate(o, today = todayISO()) {
+    return o.date < today && (o.statut !== 'remise' || resteDu(o) > 0);
+  }
+
+  function ordersFor(key, all) {
+    const today = todayISO();
+    const dates = RANGES[key].days.map(n => addDaysISO(today, n));
+    const byTime = (a, b) => (a.date + a.heure).localeCompare(b.date + b.heure);
+    const list = all.filter(o => dates.includes(o.date)).sort(byTime);
+    // Les commandes en retard remontent en tête de l'onglet Aujourd'hui
+    if (key === 'today') return [...all.filter(o => isLate(o, today)).sort(byTime), ...list];
+    return list;
+  }
+
+  function card(o) {
+    const sub = [escapeHTML(o.cliente)];
+    if (o.mode === 'livraison' && o.adresse) sub.push(escapeHTML(o.adresse.split(/[,\n]/)[0]));
+    else if (o.personnes) sub.push(`${o.personnes} pers.`);
+    const reste = resteDu(o);
+    const payChip = reste > 0
+      ? `<span class="chip due">Reste ${formatDH(reste)}</span>`
+      : `<span class="chip paid">Payé</span>`;
+    const late = isLate(o);
+    const shortDate = parseDate(o.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    return `
+      <button class="order-card${late ? ' late' : o.statut === 'remise' ? ' done' : ''}" data-go="detail" data-id="${o.id}">
+        <div class="order-time">
+          <div class="num">${escapeHTML(o.heure)}</div>
+          <div class="mode">${late ? escapeHTML(shortDate) : o.mode === 'livraison' ? 'Livraison' : 'Retrait'}</div>
+        </div>
+        <div>
+          <div class="order-title">${escapeHTML(orderTitle(o))}</div>
+          <div class="order-sub">${sub.join(' · ')}</div>
+          <div class="chips">${late ? '<span class="chip late">En retard</span>' : ''}${payChip}<span class="chip">${STATUTS[o.statut] || ''}</span></div>
+        </div>
+      </button>`;
+  }
+
+  function render() {
+    const all = Store.all();
+    const list = ordersFor(range, all);
+
+    // Résumé
+    $('sum-count').textContent = list.length;
+    $('sum-count-lbl').textContent = list.length === 1 ? RANGES[range].label.replace('commandes', 'commande') : RANGES[range].label;
+    $('sum-deliveries').textContent = list.filter(o => o.mode === 'livraison').length;
+    $('sum-due').textContent = formatDH(list.reduce((s, o) => s + resteDu(o), 0)).replace(' DH', '');
+
+    // Onglets (avec le nombre de commandes pour Demain et Semaine, comme sur la maquette)
+    $('agenda-tabs').querySelectorAll('.tab').forEach(t => {
+      const key = t.dataset.range;
+      const n = ordersFor(key, all).length;
+      const base = { today: "Aujourd'hui", tomorrow: 'Demain', week: 'Semaine' }[key];
+      t.textContent = key !== 'today' && n ? `${base} · ${n}` : base;
+      t.classList.toggle('active', key === range);
+      t.setAttribute('aria-selected', String(key === range));
+    });
+
+    // Liste (groupée par jour en vue Semaine)
+    if (!list.length) {
+      $('order-list').innerHTML = `<div class="empty"><strong>${RANGES[range].empty}</strong>Ajoutez-en une avec « Nouvelle commande ».</div>`;
+      return;
+    }
+    let html = '';
+    let lastDate = null;
+    list.forEach(o => {
+      if (range === 'week' && o.date !== lastDate) {
+        html += `<div class="day-label">${dayLabel(o.date)}</div>`;
+        lastDate = o.date;
+      }
+      html += card(o);
+    });
+    $('order-list').innerHTML = html;
+  }
+
+  $('agenda-tabs').addEventListener('click', e => {
+    const t = e.target.closest('.tab');
+    if (!t) return;
+    range = t.dataset.range;
+    render();
+  });
+
+  return { render };
+})();
+
+/* =========================================================
    Navigation
    Les écrans sont pilotés par le "hash" de l'URL :
    #agenda, #nouvelle, #detail/ID, #bon/ID, #clientes, #paiements, #plus
@@ -932,7 +1074,27 @@ function replaceRoute(name, id) {
 // Ce que chaque écran doit faire quand on y arrive
 let currentScreen = null;
 const onEnter = {
+  agenda() {
+    document.getElementById('agenda-date').textContent =
+      new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    Agenda.render();
+  },
   nouvelle() { OrderForm.reset(); },
+  detail(id) {
+    // Provisoire (le détail complet arrive à la tâche 4) : affiche l'essentiel de la commande
+    const o = id && Store.get(id);
+    if (!o) return;
+    const s = document.getElementById('screen-detail');
+    s.querySelector('.topbar-title').textContent = `Commande #${o.id}`;
+    s.querySelector('.detail-title').textContent = orderTitle(o);
+    s.querySelector('.detail-sub').textContent =
+      `${dayLabel(o.date)}, ${o.heure} · ${o.mode === 'livraison' ? 'Livraison' : 'Retrait'} · ${o.cliente}`;
+    const nums = s.querySelectorAll('.card .num');
+    nums[0].textContent = formatDH(o.prix);
+    nums[1].textContent = formatDH(o.acompte);
+    nums[2].textContent = formatDH(resteDu(o));
+    s.querySelector('[data-go="bon"]').dataset.id = o.id;
+  },
   bon(id) {
     // Provisoire (le vrai bon arrive à la tâche 5) : confirme que la commande est bien enregistrée
     const o = id && Store.get(id);
@@ -976,10 +1138,6 @@ window.addEventListener('hashchange', () => {
 });
 
 history.replaceState({ depth: 0 }, '');
-
-/* Date du jour en en-tête de l'agenda */
-document.getElementById('agenda-date').textContent =
-  new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
 render();
 </script>
