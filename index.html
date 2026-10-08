@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#A3214E">
 <title>Carnet Pâtisserie</title>
+<script>
+  try {
+    if ((JSON.parse(localStorage.getItem('patisserie.reglages')) || {}).langue === 'ar') {
+      document.documentElement.lang = 'ar';
+      document.documentElement.dir = 'rtl';
+    }
+  } catch (e) {}
+</script>
 <!-- App installable : manifeste, icônes, réglages iPhone -->
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -54,11 +62,13 @@
 
     /* Typographie */
     --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-arabic: "IBM Plex Sans Arabic";     /* lettres arabes ; chiffres et heures restent en Plus Jakarta Sans */
     --fw-regular: 500;
     --fw-semibold: 600;
     --fw-bold: 700;
     --fw-heavy: 800;
     --tracking-tight: -0.03em;         /* titres et chiffres */
+    --tracking-digits: -0.03em;        /* chiffres seuls (montants, heures) — gardé aussi en arabe */
     --tracking-caps: .08em;            /* petites étiquettes en capitales */
 
     --fs-badge: 10px;
@@ -102,7 +112,7 @@
     --shadow-fab: 0 6px 18px rgba(36, 26, 29, .25);
     --shadow-toast: 0 8px 24px rgba(36, 26, 29, .25);
     --shadow-phone: 0 10px 40px rgba(36, 26, 29, .12), 0 0 0 1px rgba(36, 26, 29, .04);
-    --shadow-late: inset 4px 0 0 var(--color-primary);
+    --shadow-late: inset 4px 0 0 var(--color-primary);   /* barre « en retard » côté début de ligne */
     --canvas-shadow-color: rgba(36, 26, 29, .07);   /* ombre des cartes sur l'image PNG du bon */
   }
 
@@ -216,7 +226,7 @@
   .bell svg { width: 21px; height: 21px; }
   .bell:active { background: var(--color-soft); }
   .badge {
-    position: absolute; top: 5px; right: 5px;
+    position: absolute; top: 5px; inset-inline-end: 5px;
     min-width: 19px; height: 19px; padding: 0 4px;
     display: grid; place-items: center;
     border-radius: var(--r-pill);
@@ -236,7 +246,8 @@
   }
   .summary-label { font-size: var(--fs-sm); font-weight: var(--fw-bold); opacity: .92; }
   .summary-amount { margin: 4px 0 12px; font-size: var(--fs-hero); line-height: 1.1; }
-  .summary-amount .unit { font-size: var(--fs-xl); letter-spacing: 0; margin-left: 2px; }
+  #sum-due { letter-spacing: var(--tracking-digits); }
+  .summary-amount .unit { font-size: var(--fs-xl); letter-spacing: 0; margin-inline-start: 2px; }
   .summary-pills { display: flex; flex-wrap: wrap; gap: 8px; }
   .pill {
     display: inline-flex; align-items: center;
@@ -269,7 +280,7 @@
     grid-template-columns: 58px 1fr;
     gap: 10px;
     width: 100%;
-    text-align: left;
+    text-align: start;
     background: var(--color-surface);
     border: 0;
     border-radius: var(--r-lg);
@@ -278,7 +289,7 @@
   }
   .order-card:active { background: var(--color-soft); }
   .order-time { text-align: center; }
-  .order-time .num { font-size: var(--fs-xl); }
+  .order-time .num { font-size: var(--fs-xl); letter-spacing: var(--tracking-digits); }
   .order-time .mode { font-size: var(--fs-2xs); color: var(--color-text-2); margin-top: 2px; }
   .order-title { font-weight: var(--fw-heavy); font-size: var(--fs-base); letter-spacing: -0.01em; }
   .order-sub { color: var(--color-text-2); font-size: var(--fs-sm); margin: 3px 0 8px; }
@@ -324,7 +335,7 @@
 
   .fab {
     position: absolute;
-    right: var(--gutter);
+    inset-inline-end: var(--gutter);
     bottom: calc(76px + env(safe-area-inset-bottom, 0px));
     display: inline-flex; align-items: center; gap: 10px;
     min-height: 52px;
@@ -345,7 +356,7 @@
     display: flex; align-items: center; gap: var(--gap);
     width: 100%; min-height: 60px;
     padding: 10px 12px;
-    text-align: left;
+    text-align: start;
     background: var(--color-bg);
     border: 0; border-radius: var(--r-md);
   }
@@ -468,7 +479,7 @@
      ========================================================= */
   .detail-title { font-size: var(--fs-4xl); margin: 0; }
   .detail-sub { color: var(--color-text-2); font-size: var(--fs-sm); margin: 4px 0 14px; }
-  .detail-sub .chip { vertical-align: 1px; margin-left: 4px; }
+  .detail-sub .chip { vertical-align: 1px; margin-inline-start: 4px; }
   .detail-text { white-space: pre-line; }
   .steps-label { font-size: var(--fs-xs); color: var(--color-text-2); margin: 0 0 4px; }
   .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 14px; }
@@ -476,7 +487,7 @@
     min-height: var(--tap);
     padding: 0;
     border: 0; background: transparent;
-    text-align: left;
+    text-align: start;
     font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--color-text-2);
   }
   .step::before { content: ""; display: block; height: 5px; border-radius: 4px; background: var(--color-tabs); margin-bottom: 6px; }
@@ -542,6 +553,7 @@
     color: var(--color-text);
   }
   .input:focus { outline: 2px solid var(--color-primary); outline-offset: -1px; border-color: transparent; }
+  .input { unicode-bidi: plaintext; text-align: start; }   /* un nom latin tapé dans l'interface arabe garde son ordre */
   .input::placeholder { color: var(--color-text-2); opacity: .7; }
   textarea.input { min-height: 88px; resize: vertical; line-height: 1.4; }
   .req { color: var(--color-primary); }
@@ -550,9 +562,9 @@
 
   /* Champ avec unité "DH" à droite */
   .input-unit { position: relative; }
-  .input-unit .input { padding-right: 42px; }
+  .input-unit .input { padding-inline-end: 42px; }
   .input-unit .unit {
-    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    position: absolute; inset-inline-end: 14px; top: 50%; transform: translateY(-50%);
     font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--color-text-2); pointer-events: none;
   }
 
@@ -605,7 +617,7 @@
   .photo-add svg { width: 18px; height: 18px; }
   .photo-preview { position: relative; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-card); }
   .photo-preview img { display: block; width: 100%; max-height: 260px; object-fit: cover; }
-  .photo-actions { display: flex; gap: 8px; position: absolute; right: 8px; bottom: 8px; }
+  .photo-actions { display: flex; gap: 8px; position: absolute; inset-inline-end: 8px; bottom: 8px; }
   .photo-actions button {
     min-height: 36px; padding: 0 var(--gap);
     border: 0; border-radius: var(--r-xs);
@@ -667,6 +679,24 @@
     font-size: var(--fs-md);
   }
   .page-title { margin: 6px 0 var(--gutter); font-size: var(--fs-hello); }
+
+  /* =========================================================
+     Arabe : lecture de droite à gauche
+     ========================================================= */
+  .ltr { direction: ltr; unicode-bidi: isolate; }   /* numéros de téléphone */
+  html[dir="rtl"] {
+    --font: "Plus Jakarta Sans", var(--font-arabic), system-ui, sans-serif;
+    --tracking-tight: 0;            /* l'espacement serré casserait la liaison des lettres arabes */
+    --shadow-late: inset -4px 0 0 var(--color-primary);
+  }
+  html[dir="rtl"] [data-back] svg { transform: scaleX(-1); }      /* flèche de retour vers la droite */
+  html[dir="rtl"] input[type="tel"],
+  html[dir="rtl"] input[type="number"] { direction: ltr; text-align: right; }
+  html[dir="rtl"] .order-sub,
+  html[dir="rtl"] .detail-sub,
+  html[dir="rtl"] .card-text,
+  html[dir="rtl"] .hint,
+  html[dir="rtl"] .modal p { line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -686,7 +716,7 @@
             <path class="logo-stem" d="M21.5 8.2 C22 6.2 23.6 5.2 25.4 5" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
         </span>
-        <span class="brand-name">Carnet</span>
+        <span class="brand-name" data-i18n="appName">Carnet</span>
       </div>
       <button class="bell" id="alerts-btn" aria-label="Alertes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
@@ -698,7 +728,7 @@
 
     <div class="summary">
       <div class="summary-label" id="sum-label">À encaisser aujourd'hui</div>
-      <div class="summary-amount num"><span id="sum-due">0</span><span class="unit">DH</span></div>
+      <div class="summary-amount num"><span id="sum-due">0</span><span class="unit" data-i18n="unit">DH</span></div>
       <div class="summary-pills">
         <span class="pill" id="sum-count">0 commande</span>
         <span class="pill" id="sum-deliveries">0 livraison</span>
@@ -718,7 +748,7 @@
   <!-- ============ NOUVELLE COMMANDE ============ -->
   <main class="screen" id="screen-nouvelle" data-screen="nouvelle" hidden>
     <div class="topbar">
-      <button class="icon-btn" data-back aria-label="Fermer">
+      <button class="icon-btn" data-back aria-label="Fermer" data-i18n-aria="close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
       <div class="topbar-title" id="form-title">Nouvelle commande</div>
@@ -726,68 +756,68 @@
     </div>
     <form id="order-form" novalidate autocomplete="off">
       <div class="field" data-field="cliente">
-        <label for="f-cliente">Cliente <span class="req">*</span></label>
-        <input class="input" id="f-cliente" name="cliente" placeholder="Ex. Fatima B." autocapitalize="words">
-        <div class="error-msg">Indiquez le nom de la cliente.</div>
+        <label for="f-cliente"><span data-i18n="f.cliente">Cliente</span> <span class="req">*</span></label>
+        <input class="input" id="f-cliente" name="cliente" placeholder="Ex. Fatima B." data-i18n-ph="f.cliente.ph" autocapitalize="words">
+        <div class="error-msg" data-i18n="f.cliente.err">Indiquez le nom de la cliente.</div>
       </div>
 
       <div class="field" data-field="telephone">
-        <label for="f-telephone">Téléphone WhatsApp <span class="req">*</span></label>
+        <label for="f-telephone"><span data-i18n="f.tel">Téléphone WhatsApp</span> <span class="req">*</span></label>
         <input class="input" id="f-telephone" name="telephone" type="tel" inputmode="tel" placeholder="06 12 34 56 78">
-        <div class="error-msg">Numéro invalide (ex. 06 12 34 56 78 ou +212 6 12 34 56 78).</div>
+        <div class="error-msg" data-i18n="f.tel.err">Numéro invalide (ex. 06 12 34 56 78 ou +212 6 12 34 56 78).</div>
       </div>
 
       <div class="field" data-field="produit">
-        <span class="label">Produit <span class="req">*</span></span>
+        <span class="label"><span data-i18n="f.produit">Produit</span> <span class="req">*</span></span>
         <div class="choice-group" id="f-produit">
-          <button type="button" class="choice" data-value="Gâteau" aria-pressed="false">Gâteau</button>
-          <button type="button" class="choice" data-value="Plateau salé" aria-pressed="false">Plateau salé</button>
-          <button type="button" class="choice" data-value="Pâtisserie marocaine" aria-pressed="false">Pâtisserie marocaine</button>
-          <button type="button" class="choice" data-value="Autre" aria-pressed="false">Autre</button>
+          <button type="button" class="choice" data-value="Gâteau" aria-pressed="false" data-i18n="prod.Gâteau">Gâteau</button>
+          <button type="button" class="choice" data-value="Plateau salé" aria-pressed="false" data-i18n="prod.Plateau salé">Plateau salé</button>
+          <button type="button" class="choice" data-value="Pâtisserie marocaine" aria-pressed="false" data-i18n="prod.Pâtisserie marocaine">Pâtisserie marocaine</button>
+          <button type="button" class="choice" data-value="Autre" aria-pressed="false" data-i18n="prod.Autre">Autre</button>
         </div>
-        <div class="error-msg">Choisissez un produit.</div>
+        <div class="error-msg" data-i18n="f.produit.err">Choisissez un produit.</div>
       </div>
 
       <div class="field" data-field="produitAutre" hidden>
-        <label for="f-produit-autre">Précisez le produit</label>
-        <input class="input" id="f-produit-autre" name="produitAutre" placeholder="Ex. Cupcakes, tarte…">
+        <label for="f-produit-autre" data-i18n="f.autre">Précisez le produit</label>
+        <input class="input" id="f-produit-autre" name="produitAutre" placeholder="Ex. Cupcakes, tarte…" data-i18n-ph="f.autre.ph">
       </div>
 
       <div class="grid-2">
         <div class="field" data-field="date">
-          <label for="f-date">Date <span class="req">*</span></label>
+          <label for="f-date"><span data-i18n="f.date">Date</span> <span class="req">*</span></label>
           <input class="input" id="f-date" name="date" type="date">
-          <div class="error-msg">Choisissez une date.</div>
+          <div class="error-msg" data-i18n="f.date.err">Choisissez une date.</div>
         </div>
         <div class="field" data-field="heure">
-          <label for="f-heure">Heure <span class="req">*</span></label>
+          <label for="f-heure"><span data-i18n="f.heure">Heure</span> <span class="req">*</span></label>
           <input class="input" id="f-heure" name="heure" type="time" step="300">
-          <div class="error-msg">Choisissez une heure.</div>
+          <div class="error-msg" data-i18n="f.heure.err">Choisissez une heure.</div>
         </div>
       </div>
 
       <div class="field" data-field="personnes">
-        <label for="f-personnes">Nombre de personnes</label>
-        <input class="input" id="f-personnes" name="personnes" type="number" inputmode="numeric" min="1" step="1" placeholder="Ex. 20">
-        <div class="error-msg">Nombre invalide.</div>
+        <label for="f-personnes" data-i18n="f.pers">Nombre de personnes</label>
+        <input class="input" id="f-personnes" name="personnes" type="number" inputmode="numeric" min="1" step="1" placeholder="Ex. 20" data-i18n-ph="f.pers.ph">
+        <div class="error-msg" data-i18n="f.pers.err">Nombre invalide.</div>
       </div>
 
       <div class="field" data-field="details">
-        <label for="f-details">Détails (parfum, décor, inscription)</label>
-        <textarea class="input" id="f-details" name="details" rows="3" placeholder="Ex. Vanille fraises, rose et doré. « Joyeux anniversaire Lina, 5 ans ». Sans fruits à coque."></textarea>
+        <label for="f-details" data-i18n="f.details">Détails (parfum, décor, inscription)</label>
+        <textarea class="input" id="f-details" name="details" rows="3" placeholder="Ex. Vanille fraises, rose et doré. « Joyeux anniversaire Lina, 5 ans ». Sans fruits à coque." data-i18n-ph="f.details.ph"></textarea>
       </div>
 
       <div class="field" data-field="photo">
         <input type="file" id="f-photo" accept="image/*" hidden>
         <button type="button" class="photo-add" id="photo-add">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg>
-          Ajouter la photo modèle
+          <span data-i18n="f.photo.add">Ajouter la photo modèle</span>
         </button>
         <div class="photo-preview" id="photo-preview" hidden>
-          <img id="photo-img" alt="Photo modèle">
+          <img id="photo-img" alt="Photo modèle" data-i18n-alt="f.photo.alt">
           <div class="photo-actions">
-            <button type="button" id="photo-change">Changer</button>
-            <button type="button" id="photo-remove">Retirer</button>
+            <button type="button" id="photo-change" data-i18n="f.photo.change">Changer</button>
+            <button type="button" id="photo-remove" data-i18n="f.photo.remove">Retirer</button>
           </div>
         </div>
         <div class="error-msg" id="photo-error"></div>
@@ -795,33 +825,33 @@
 
       <div class="grid-2">
         <div class="field" data-field="prix">
-          <label for="f-prix">Prix total <span class="req">*</span></label>
+          <label for="f-prix"><span data-i18n="f.prix">Prix total</span> <span class="req">*</span></label>
           <div class="input-unit">
             <input class="input" id="f-prix" name="prix" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
-            <span class="unit">DH</span>
+            <span class="unit" data-i18n="unit">DH</span>
           </div>
-          <div class="error-msg">Indiquez le prix.</div>
+          <div class="error-msg" data-i18n="f.prix.err">Indiquez le prix.</div>
         </div>
         <div class="field" data-field="acompte">
-          <label for="f-acompte">Acompte reçu</label>
+          <label for="f-acompte" data-i18n="f.acompte">Acompte reçu</label>
           <div class="input-unit">
             <input class="input" id="f-acompte" name="acompte" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
-            <span class="unit">DH</span>
+            <span class="unit" data-i18n="unit">DH</span>
           </div>
-          <div class="error-msg">Supérieur au prix total.</div>
+          <div class="error-msg" data-i18n="f.acompte.err">Supérieur au prix total.</div>
         </div>
       </div>
 
       <div class="field" data-field="mode">
         <div class="segmented" id="f-mode">
-          <button type="button" data-value="retrait" aria-pressed="true">Retrait</button>
-          <button type="button" data-value="livraison" aria-pressed="false">Livraison</button>
+          <button type="button" data-value="retrait" aria-pressed="true" data-i18n="mode.retrait">Retrait</button>
+          <button type="button" data-value="livraison" aria-pressed="false" data-i18n="mode.livraison">Livraison</button>
         </div>
       </div>
 
       <div class="field" data-field="adresse" hidden>
-        <label for="f-adresse">Adresse de livraison</label>
-        <textarea class="input" id="f-adresse" name="adresse" rows="2" placeholder="Quartier, rue, immeuble, étage…"></textarea>
+        <label for="f-adresse" data-i18n="f.adresse">Adresse de livraison</label>
+        <textarea class="input" id="f-adresse" name="adresse" rows="2" placeholder="Quartier, rue, immeuble, étage…" data-i18n-ph="f.adresse.ph"></textarea>
       </div>
 
       <div class="due-line" id="due-line">
@@ -829,20 +859,20 @@
         <span class="num" id="due-amount">0 DH</span>
       </div>
 
-      <button type="submit" class="btn btn-primary" id="form-submit">Enregistrer et voir le bon de commande</button>
+      <button type="submit" class="btn btn-primary" id="form-submit">Enregistrer la commande</button>
     </form>
   </main>
 
   <!-- ============ DÉTAIL COMMANDE ============ -->
   <main class="screen" id="screen-detail" data-screen="detail" hidden>
     <div class="topbar">
-      <button class="icon-btn" data-back aria-label="Retour">
+      <button class="icon-btn" data-back aria-label="Retour" data-i18n-aria="back">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
       <div class="topbar-title" id="detail-number">Commande</div>
       <button class="text-btn" id="detail-edit" data-go="modifier">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>
-        Modifier
+        <span data-i18n="d.edit">Modifier</span>
       </button>
     </div>
     <div id="detail-body"></div>
@@ -851,103 +881,121 @@
   <!-- ============ BON DE COMMANDE CLIENT ============ -->
   <main class="screen bon" id="screen-bon" data-screen="bon" hidden>
     <div class="topbar">
-      <button class="icon-btn" data-back aria-label="Retour">
+      <button class="icon-btn" data-back aria-label="Retour" data-i18n-aria="back">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
-      <div class="topbar-title">Aperçu côté cliente</div>
+      <div class="topbar-title" data-i18n="b.preview">Aperçu côté cliente</div>
       <span></span>
     </div>
     <!-- Réservé à la pâtissière : n'apparaît pas sur l'image partagée -->
     <div class="owner-bar" id="bon-share-bar">
       <button class="btn btn-primary" id="bon-share">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
-        Partager en image
+        <span data-i18n="b.share">Partager en image</span>
       </button>
-      <p>Envoie une image du bon à la cliente (WhatsApp…). Ce bouton n'apparaît pas sur l'image.</p>
+      <p data-i18n="b.shareHint">Envoie une image du bon à la cliente (WhatsApp…). Ce bouton n'apparaît pas sur l'image.</p>
     </div>
     <div id="bon-body"></div>
   </main>
 
   <!-- ============ ÉCRANS SECONDAIRES (barre du bas) ============ -->
   <main class="screen" id="screen-clientes" data-screen="clientes" hidden>
-    <h1 class="page-title">Clientes</h1>
-    <div class="placeholder">Bientôt disponible.</div>
+    <h1 class="page-title" data-i18n="page.clientes">Clientes</h1>
+    <div class="placeholder" data-i18n="soon">Bientôt disponible.</div>
   </main>
   <main class="screen" id="screen-paiements" data-screen="paiements" hidden>
-    <h1 class="page-title">Paiements</h1>
-    <div class="placeholder">Bientôt disponible.</div>
+    <h1 class="page-title" data-i18n="page.paiements">Paiements</h1>
+    <div class="placeholder" data-i18n="soon">Bientôt disponible.</div>
   </main>
   <main class="screen" id="screen-plus" data-screen="plus" hidden>
-    <h1 class="page-title">Réglages</h1>
+    <h1 class="page-title" data-i18n="page.reglages">Réglages</h1>
+
+    <div class="card">
+      <p class="section-label" data-i18n="s.langue">Langue</p>
+      <div class="segmented" id="s-langue">
+        <button type="button" data-lang="fr" aria-pressed="true" lang="fr">Français</button>
+        <button type="button" data-lang="ar" aria-pressed="false" lang="ar">العربية</button>
+      </div>
+    </div>
 
     <form id="settings-form" novalidate autocomplete="off">
       <div class="card">
-        <p class="section-label">Ma pâtisserie</p>
+        <p class="section-label" data-i18n="s.section">Ma pâtisserie</p>
         <div class="field" data-field="prenom">
-          <label for="s-prenom">Votre prénom</label>
-          <input class="input" id="s-prenom" placeholder="Ex. Salma" autocapitalize="words">
-          <div class="hint">Affiché sur l'agenda : « Bonjour Salma ».</div>
+          <label for="s-prenom" data-i18n="s.prenom">Votre prénom</label>
+          <input class="input" id="s-prenom" placeholder="Ex. Salma" data-i18n-ph="s.prenom.ph" autocapitalize="words">
+          <div class="hint" data-i18n="s.prenom.hint">Affiché sur l'agenda : « Bonjour Salma ».</div>
+        </div>
+        <div class="field" data-field="prenomAr">
+          <label for="s-prenom-ar" data-i18n="s.prenomAr">Prénom en arabe</label>
+          <input class="input" id="s-prenom-ar" placeholder="Ex. سلمى" data-i18n-ph="s.prenomAr.ph" lang="ar">
+          <div class="hint" data-i18n="s.prenomAr.hint">Facultatif. Utilisé quand l'app est en arabe : « مرحبا سلمى ».</div>
         </div>
         <div class="field" data-field="nom">
-          <label for="s-nom">Nom de la pâtisserie</label>
-          <input class="input" id="s-nom" placeholder="Ex. Salma Pâtisserie">
-          <div class="hint">En tête du bon de commande et dans les messages WhatsApp.</div>
+          <label for="s-nom" data-i18n="s.nom">Nom de la pâtisserie</label>
+          <input class="input" id="s-nom" placeholder="Ex. Salma Pâtisserie" data-i18n-ph="s.nom.ph">
+          <div class="hint" data-i18n="s.nom.hint">En tête du bon de commande et dans les messages WhatsApp.</div>
+        </div>
+        <div class="field" data-field="nomAr">
+          <label for="s-nom-ar" data-i18n="s.nomAr">Nom de la pâtisserie en arabe</label>
+          <input class="input" id="s-nom-ar" placeholder="Ex. حلويات سلمى" data-i18n-ph="s.nomAr.ph" lang="ar">
+          <div class="hint" data-i18n="s.nomAr.hint">Facultatif. Utilisé sur le bon et dans les messages en arabe.</div>
         </div>
         <div class="field" data-field="whatsapp">
-          <label for="s-whatsapp">Numéro WhatsApp de la pâtisserie</label>
+          <label for="s-whatsapp" data-i18n="s.wa">Numéro WhatsApp de la pâtisserie</label>
           <input class="input" id="s-whatsapp" type="tel" inputmode="tel" placeholder="06 12 34 56 78">
-          <div class="hint">Pour le bouton « Une question ? » du bon de commande.</div>
-          <div class="error-msg">Numéro invalide (ex. 06 12 34 56 78 ou +212 6 12 34 56 78).</div>
+          <div class="hint" data-i18n="s.wa.hint">Pour le bouton « Une question ? » du bon de commande.</div>
+          <div class="error-msg" data-i18n="f.tel.err">Numéro invalide (ex. 06 12 34 56 78 ou +212 6 12 34 56 78).</div>
         </div>
         <div class="field last" data-field="adresse">
-          <label for="s-adresse">Adresse de retrait</label>
-          <textarea class="input" id="s-adresse" rows="2" placeholder="Ex. 12 rue des Orangers, Maârif, Casablanca"></textarea>
-          <div class="hint">Indiquée sur le bon pour les commandes à retirer.</div>
+          <label for="s-adresse" data-i18n="s.adresse">Adresse de retrait</label>
+          <textarea class="input" id="s-adresse" rows="2" placeholder="Ex. 12 rue des Orangers, Maârif, Casablanca" data-i18n-ph="s.adresse.ph"></textarea>
+          <div class="hint" data-i18n="s.adresse.hint">Indiquée sur le bon pour les commandes à retirer.</div>
         </div>
-        <button type="submit" class="btn btn-primary">Enregistrer les réglages</button>
+        <button type="submit" class="btn btn-primary" data-i18n="s.save">Enregistrer les réglages</button>
       </div>
     </form>
 
     <div class="card">
-      <p class="section-label">Mes données</p>
-      <p class="card-text">Les données sont enregistrées uniquement dans ce navigateur. Exportez-les régulièrement pour en garder une copie.</p>
-      <button class="btn btn-light" id="data-export">Exporter mes données</button>
-      <button class="btn btn-light" id="data-import">Importer</button>
+      <p class="section-label" data-i18n="s.data">Mes données</p>
+      <p class="card-text" data-i18n="s.data.text">Les données sont enregistrées uniquement dans ce navigateur. Exportez-les régulièrement pour en garder une copie.</p>
+      <button class="btn btn-light" id="data-export" data-i18n="s.export">Exporter mes données</button>
+      <button class="btn btn-light" id="data-import" data-i18n="s.import">Importer</button>
       <input type="file" id="data-import-file" accept="application/json,.json" hidden>
     </div>
 
     <div class="card">
-      <p class="section-label">Prototype</p>
-      <button class="btn btn-light" id="data-samples">Charger 5 commandes d'exemple</button>
-      <button class="btn btn-danger-outline" id="data-clear-orders">Effacer les commandes</button>
-      <button class="btn btn-danger-outline" id="data-clear">Tout effacer</button>
-      <p class="hint center">Une sauvegarde JSON est téléchargée automatiquement avant chaque effacement ou import.</p>
+      <p class="section-label" data-i18n="s.proto">Prototype</p>
+      <button class="btn btn-light" id="data-samples" data-i18n="s.samples">Charger 5 commandes d'exemple</button>
+      <button class="btn btn-danger-outline" id="data-clear-orders" data-i18n="s.clearOrders">Effacer les commandes</button>
+      <button class="btn btn-danger-outline" id="data-clear" data-i18n="s.clearAll">Tout effacer</button>
+      <p class="hint center" data-i18n="s.backupHint">Une sauvegarde JSON est téléchargée automatiquement avant chaque effacement ou import.</p>
     </div>
   </main>
 
   <!-- Bouton flottant -->
   <button class="fab" id="fab" data-go="nouvelle">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-    Nouvelle commande
+    <span data-i18n="newOrder">Nouvelle commande</span>
   </button>
 
   <!-- Barre de navigation -->
   <nav class="bottom-nav" id="bottom-nav">
     <button class="nav-item" data-go="agenda">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
-      Agenda
+      <span data-i18n="nav.agenda">Agenda</span>
     </button>
     <button class="nav-item" data-go="clientes">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.5 3.3-5.5 6.5-5.5s5.9 2 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.7.8 2.8 2.6 3 5.2"/></svg>
-      Clientes
+      <span data-i18n="nav.clientes">Clientes</span>
     </button>
     <button class="nav-item" data-go="paiements">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>
-      Paiements
+      <span data-i18n="nav.paiements">Paiements</span>
     </button>
     <button class="nav-item" data-go="plus">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-      Plus
+      <span data-i18n="nav.plus">Plus</span>
     </button>
   </nav>
 </div>
@@ -960,7 +1008,7 @@ const KEYS = { orders: 'patisserie.commandes', nextId: 'patisserie.prochainNumer
 
 // Réglages de la pâtisserie (l'écran pour les modifier arrive à la tâche 6)
 const Settings = {
-  DEFAULTS: { nom: '', prenom: '', whatsapp: '', adresse: '' },
+  DEFAULTS: { nom: '', prenom: '', whatsapp: '', adresse: '', langue: 'fr', prenomAr: '', nomAr: '' },
   get() {
     try { return { ...this.DEFAULTS, ...JSON.parse(localStorage.getItem(KEYS.settings)) }; }
     catch { return { ...this.DEFAULTS }; }
@@ -999,11 +1047,461 @@ const Store = {
 };
 
 /* =========================================================
+   Traductions (français / arabe)
+   Tous les textes de l'interface sont ici. Une valeur peut être une fonction
+   quand le texte contient une donnée (nombre, nom, date…).
+   ========================================================= */
+
+// Isolants Unicode : un texte latin (nom, produit…) dans une phrase arabe garde son ordre et sa ponctuation
+const FSI = '⁨', LRI = '⁦', PDI = '⁩';
+const iso = s => LANG === 'ar' ? FSI + s + PDI : String(s);          // direction déduite du texte
+const ltrIso = s => LANG === 'ar' ? LRI + s + PDI : String(s);       // toujours de gauche à droite (téléphones)
+const PHONE_EX = `${LRI}06 12 34 56 78${PDI}`;
+const PHONE_EX_INTL = `${LRI}+212 6 12 34 56 78${PDI}`;
+
+// Pluriel arabe avec chiffres : 1 → singulier, 2 à 10 → pluriel, 0 et 11+ → singulier
+const arCount = (n, one, few) => `${n} ${n >= 2 && n <= 10 ? few : one}`;
+const AR_ORDINALS = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر'];
+// Mois marocains et jours de la semaine
+const AR_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي', 'يونيو', 'يوليوز', 'غشت', 'شتنبر', 'أكتوبر', 'نونبر', 'دجنبر'];
+const AR_DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+const I18N = {
+  fr: {
+    docTitle: 'Carnet Pâtisserie',
+    appName: 'Carnet',
+    unit: 'DH',
+    back: 'Retour',
+    close: 'Fermer',
+    cancel: 'Annuler',
+    soon: 'Bientôt disponible.',
+    'nav.agenda': 'Agenda', 'nav.clientes': 'Clientes', 'nav.paiements': 'Paiements', 'nav.plus': 'Plus',
+    'page.clientes': 'Clientes', 'page.paiements': 'Paiements', 'page.reglages': 'Réglages',
+    newOrder: 'Nouvelle commande',
+
+    // Agenda
+    hello: p => p ? `Bonjour ${p}` : 'Bonjour',
+    'sum.today': "À encaisser aujourd'hui", 'sum.tomorrow': 'À encaisser demain', 'sum.week': 'À encaisser cette semaine',
+    orders: n => `${n} commande${n > 1 ? 's' : ''}`,
+    deliveries: n => `${n} livraison${n > 1 ? 's' : ''}`,
+    people: n => `${n} pers.`,
+    'tab.today': "Aujourd'hui", 'tab.tomorrow': 'Demain', 'tab.week': 'Semaine',
+    'day.today': "Aujourd'hui", 'day.tomorrow': 'Demain',
+    'mode.retrait': 'Retrait', 'mode.livraison': 'Livraison',
+    remaining: x => `Reste ${x}`,
+    paid: 'Payé',
+    late: 'En retard',
+    'empty.today': "Aucune commande aujourd'hui", 'empty.tomorrow': 'Aucune commande demain',
+    'empty.week': 'Aucune commande sur les 7 prochains jours',
+    'empty.hint': 'Ajoutez-en une avec « Nouvelle commande ».',
+
+    // Alertes
+    'alerts.title': 'Alertes',
+    'alerts.intro': "Commandes en retard et livraisons ou retraits dans moins d'une heure.",
+    'alerts.none': "Rien à signaler : aucune commande en retard ni prévue dans l'heure.",
+    'alerts.now': 'Maintenant',
+    'alerts.in': m => `Dans ${m} min`,
+    'alerts.aria': n => n ? `Alertes : ${n}` : 'Alertes : aucune',
+
+    // Statuts et produits (la valeur enregistrée reste la même dans les deux langues)
+    'st.confirmee': 'Confirmée', 'st.preparation': 'En préparation', 'st.prete': 'Prête', 'st.remise': 'Remise', 'st.annulee': 'Annulée',
+    'prod.Gâteau': 'Gâteau', 'prod.Plateau salé': 'Plateau salé', 'prod.Pâtisserie marocaine': 'Pâtisserie marocaine', 'prod.Autre': 'Autre',
+
+    // Formulaire
+    'form.new': 'Nouvelle commande',
+    'form.edit': id => `Modifier la commande #${id}`,
+    'f.cliente': 'Cliente', 'f.cliente.ph': 'Ex. Fatima B.', 'f.cliente.err': 'Indiquez le nom de la cliente.',
+    'f.tel': 'Téléphone WhatsApp', 'f.tel.err': 'Numéro invalide (ex. 06 12 34 56 78 ou +212 6 12 34 56 78).',
+    'f.produit': 'Produit', 'f.produit.err': 'Choisissez un produit.',
+    'f.autre': 'Précisez le produit', 'f.autre.ph': 'Ex. Cupcakes, tarte…',
+    'f.date': 'Date', 'f.date.err': 'Choisissez une date.',
+    'f.heure': 'Heure', 'f.heure.err': 'Choisissez une heure.',
+    'f.pers': 'Nombre de personnes', 'f.pers.ph': 'Ex. 20', 'f.pers.err': 'Nombre invalide.',
+    'f.details': 'Détails (parfum, décor, inscription)',
+    'f.details.ph': 'Ex. Vanille fraises, rose et doré. « Joyeux anniversaire Lina, 5 ans ». Sans fruits à coque.',
+    'f.photo.add': 'Ajouter la photo modèle', 'f.photo.alt': 'Photo modèle',
+    'f.photo.change': 'Changer', 'f.photo.remove': 'Retirer',
+    'f.photo.err': 'Impossible de lire cette image. Essayez une autre photo.',
+    'f.prix': 'Prix total', 'f.prix.err': 'Indiquez le prix.',
+    'f.acompte': 'Acompte reçu', 'f.acompte.err': 'Supérieur au prix total.',
+    'f.adresse': 'Adresse de livraison', 'f.adresse.ph': 'Quartier, rue, immeuble, étage…',
+    'due.retrait': 'Reste à payer au retrait', 'due.livraison': 'Reste à payer à la livraison',
+    'f.submit.new': 'Enregistrer la commande', 'f.submit.edit': 'Enregistrer les modifications',
+    'toast.checkFields': 'Vérifiez les champs en rouge.',
+    'toast.memoryFullOrder': "Mémoire du navigateur pleine : retirez la photo ou supprimez d'anciennes commandes.",
+    'toast.orderSaved': 'Commande enregistrée',
+    'toast.orderEdited': id => `Commande #${id} modifiée`,
+    notFound: 'Commande introuvable',
+    notFoundSub: 'Elle a peut-être été supprimée.',
+
+    // Détail
+    'd.number': id => `Commande #${id}`, 'd.numberEmpty': 'Commande', 'd.edit': 'Modifier',
+    'd.when': (day, h) => `${day} à ${h.replace(':', 'h')}`,
+    'd.retrait': 'Retrait sur place', 'd.livraison': 'Livraison',
+    'd.stepsLabel': 'Statut (touchez pour changer)',
+    'd.cancelled': 'Commande annulée', 'd.cancelledSub': "Elle ne compte plus dans l'agenda ni dans les totaux.",
+    'd.noPhoto': 'Pas de photo modèle',
+    'd.sec.details': 'Détails', 'd.produit': 'Produit', 'd.personnes': 'Personnes', 'd.details': 'Détails', 'd.mode': 'Mode', 'd.adresse': 'Adresse',
+    'd.sec.paiement': 'Paiement', 'd.total': 'Total', 'd.acompte': 'Acompte reçu',
+    'd.paid': 'Payé', 'd.unpay': 'Annuler « payé »', 'd.due': 'Reste à payer', 'd.markPaid': 'Marquer comme payé',
+    'd.rank': n => n === 1 ? '1re commande' : `${n}e commande`,
+    'd.call': name => `Appeler ${name}`,
+    'd.viewBon': 'Voir le bon de commande client',
+    'd.cancel': 'Annuler la commande', 'd.restore': 'Rétablir la commande',
+    'toast.status': s => `Statut : ${s}`,
+    'toast.markedPaid': 'Commande marquée comme payée', 'toast.unpaid': 'Paiement annulé',
+    'toast.cancelled': 'Commande annulée', 'toast.restored': 'Commande rétablie',
+    'toast.saveFailed': "Impossible d'enregistrer : mémoire du navigateur pleine.",
+    'cc.title': id => `Annuler la commande #${id} ?`,
+    'cc.text': (prod, cli) => `${prod} pour ${cli}. Elle restera visible, barrée, mais ne comptera plus dans les totaux. Vous pourrez la rétablir.`,
+    'cc.ok': 'Oui, annuler la commande', 'cc.no': 'Non, garder la commande',
+
+    // WhatsApp (messages envoyés à la cliente)
+    'wa.l.confirm': 'Envoyer la confirmation sur WhatsApp',
+    'wa.l.ready': 'Envoyer « commande prête » sur WhatsApp',
+    'wa.l.thanks': 'Envoyer un remerciement sur WhatsApp',
+    'wa.l.cancel': "Prévenir la cliente de l'annulation",
+    'wa.when': (day, h) => `${day} à ${h.replace(':', 'h')}`,
+    'wa.lieu.retrait': 'retrait sur place',
+    'wa.lieu.livraison': adr => `livraison${adr ? ' : ' + adr : ''}`,
+    'wa.confirm': v => `Bonjour ${v.prenom}, votre commande n°${v.id} est bien confirmée :\n` +
+      `• ${v.title}${v.pers ? ` pour ${v.pers} personnes` : ''}\n` +
+      `• Le ${v.quand} (${v.lieu})\n` +
+      `• Total : ${v.total}` +
+      (v.paye ? ' (réglé)' : ` — acompte reçu : ${v.acompte} — reste à payer : ${v.reste}`) +
+      '\nMerci pour votre confiance !',
+    'wa.ready': v => `Bonjour ${v.prenom}, votre commande (${v.title}) est prête ! ` +
+      (v.livraison ? 'Elle part bientôt en livraison. ' : 'Vous pouvez venir la récupérer. ') +
+      (v.reste ? `Reste à régler : ${v.reste}.` : 'Tout est déjà réglé, merci !'),
+    'wa.thanks': v => `Bonjour ${v.prenom}, merci pour votre commande ! J'espère que tout vous a plu. ` +
+      (v.reste ? `Il reste ${v.reste} à régler. ` : '') + 'À très bientôt !',
+    'wa.cancel': v => `Bonjour ${v.prenom}, nous vous confirmons l'annulation de votre commande n°${v.id} (${v.title}) prévue le ${v.quand}. N'hésitez pas à nous recontacter !`,
+
+    // Bon de commande
+    'b.preview': 'Aperçu côté cliente',
+    'b.share': 'Partager en image',
+    'b.shareHint': "Envoie une image du bon à la cliente (WhatsApp…). Ce bouton n'apparaît pas sur l'image.",
+    'b.nomPh': '[Nom de la pâtisserie]', 'b.adressePh': '[Adresse de retrait]',
+    'b.merci': p => `Merci pour votre commande, ${p}`,
+    'b.title': 'Bon de commande',
+    'b.produit': 'Produit', 'b.pour': 'Pour', 'b.personnes': n => `${n} personnes`, 'b.details': 'Détails',
+    'b.retrait': 'Retrait', 'b.livraison': 'Livraison', 'b.adresse': 'Adresse',
+    'b.when': (day, h) => `${day} à ${h}`,
+    'b.total': 'Total', 'b.acompte': 'Acompte versé',
+    'b.resteRetrait': 'Reste à régler au retrait', 'b.resteLivraison': 'Reste à régler à la livraison',
+    'b.settled': 'Commande entièrement réglée',
+    'b.cancelled': 'Cette commande a été annulée.', 'b.ready': 'Votre commande est prête !',
+    'b.foot': 'Vous recevrez un message quand votre commande sera prête.',
+    'b.footThanks': 'Merci pour votre confiance, à bientôt !',
+    'b.ics': 'Ajouter à mon calendrier',
+    'b.question': 'Une question ? Écrire sur WhatsApp',
+    'b.questionMsg': v => `Bonjour, j'ai une question sur ma commande n°${v.id} (${v.title}, ${v.when}).`,
+    'b.shareTitle': id => `Bon de commande #${id}`,
+    'toast.imgDownloaded': 'Image du bon téléchargée',
+    'toast.shareFailed': 'Partage impossible : image téléchargée',
+    'toast.imgFailed': "Impossible de créer l'image",
+    'ics.retrait': 'Retrait', 'ics.livraison': 'Livraison', 'ics.shop': 'la pâtisserie',
+    'ics.summary': (what, title, shop) => `${what} : ${title} (${shop})`,
+    'ics.desc': (id, reste) => `Commande n°${id}\nReste à régler : ${reste}`,
+
+    // Réglages
+    's.section': 'Ma pâtisserie',
+    's.langue': 'Langue',
+    's.prenom': 'Votre prénom', 's.prenom.ph': 'Ex. Salma', 's.prenom.hint': "Affiché sur l'agenda : « Bonjour Salma ».",
+    's.prenomAr': 'Prénom en arabe', 's.prenomAr.ph': 'Ex. سلمى',
+    's.prenomAr.hint': "Facultatif. Utilisé quand l'app est en arabe : « مرحبا سلمى ».",
+    's.nom': 'Nom de la pâtisserie', 's.nom.ph': 'Ex. Salma Pâtisserie',
+    's.nom.hint': 'En tête du bon de commande et dans les messages WhatsApp.',
+    's.nomAr': 'Nom de la pâtisserie en arabe', 's.nomAr.ph': 'Ex. حلويات سلمى',
+    's.nomAr.hint': 'Facultatif. Utilisé sur le bon et dans les messages en arabe.',
+    's.wa': 'Numéro WhatsApp de la pâtisserie', 's.wa.hint': 'Pour le bouton « Une question ? » du bon de commande.',
+    's.adresse': 'Adresse de retrait', 's.adresse.ph': 'Ex. 12 rue des Orangers, Maârif, Casablanca',
+    's.adresse.hint': 'Indiquée sur le bon pour les commandes à retirer.',
+    's.save': 'Enregistrer les réglages',
+    's.data': 'Mes données',
+    's.data.text': 'Les données sont enregistrées uniquement dans ce navigateur. Exportez-les régulièrement pour en garder une copie.',
+    's.export': 'Exporter mes données', 's.import': 'Importer',
+    's.proto': 'Prototype', 's.samples': "Charger 5 commandes d'exemple",
+    's.clearOrders': 'Effacer les commandes', 's.clearAll': 'Tout effacer',
+    's.backupHint': 'Une sauvegarde JSON est téléchargée automatiquement avant chaque effacement ou import.',
+    'toast.settingsSaved': 'Réglages enregistrés',
+    'toast.checkWa': 'Vérifiez le numéro WhatsApp.',
+    'toast.samplesAdded': "5 commandes d'exemple ajoutées",
+    'toast.memoryFull': 'Mémoire du navigateur pleine.',
+    'toast.exported': n => `${n} commande(s) exportée(s)`,
+    'err.json': "Ce fichier n'est pas un fichier JSON valide.",
+    'err.notExport': "Ce fichier n'est pas un export de l'application.",
+    'err.incomplete': 'Certaines commandes du fichier sont incomplètes.',
+    'imp.title': 'Remplacer toutes les données ?',
+    'imp.text': (n, m) => `Le fichier contient ${n} commande(s). Les ${m} commande(s) et les réglages actuels seront remplacés. Une sauvegarde des données actuelles sera d'abord téléchargée.`,
+    'imp.ok': 'Oui, remplacer',
+    'toast.importFull': "Import impossible : mémoire du navigateur pleine. Rien n'a été modifié.",
+    'toast.imported': (n, saved) => `${n} commande(s) importée(s)` + (saved ? ' — sauvegarde téléchargée' : ''),
+    'toast.noOrders': 'Aucune commande à effacer',
+    'co.title': 'Effacer les commandes ?',
+    'co.text': n => `Les ${n} commande(s) seront supprimées de ce navigateur. Vos réglages sont conservés. Une sauvegarde sera d'abord téléchargée.`,
+    'co.ok': 'Oui, effacer les commandes',
+    'toast.ordersCleared': 'Commandes effacées — sauvegarde téléchargée',
+    'toast.noData': 'Aucune donnée à effacer',
+    'ca.title': 'Tout effacer ?',
+    'ca.text': n => `Les ${n} commande(s) et les réglages seront supprimés de ce navigateur, et la numérotation repartira à #101. Une sauvegarde sera d'abord téléchargée.`,
+    'ca.ok': 'Oui, tout effacer',
+    'toast.allCleared': 'Toutes les données ont été effacées — sauvegarde téléchargée',
+  },
+
+  ar: {
+    docTitle: 'كارني',
+    appName: 'كارني',
+    unit: 'درهم',
+    back: 'رجوع',
+    close: 'إغلاق',
+    cancel: 'إلغاء',
+    soon: 'قريبًا.',
+    'nav.agenda': 'المواعيد', 'nav.clientes': 'الزبونات', 'nav.paiements': 'الأداءات', 'nav.plus': 'المزيد',
+    'page.clientes': 'الزبونات', 'page.paiements': 'الأداءات', 'page.reglages': 'الإعدادات',
+    newOrder: 'طلب جديد',
+
+    hello: p => p ? `مرحبا ${iso(p)}` : 'مرحبا',
+    'sum.today': 'للتحصيل اليوم', 'sum.tomorrow': 'للتحصيل غدا', 'sum.week': 'للتحصيل هذا الأسبوع',
+    orders: n => arCount(n, 'طلب', 'طلبات'),
+    deliveries: n => arCount(n, 'توصيل', 'توصيلات'),
+    people: n => arCount(n, 'شخص', 'أشخاص'),
+    'tab.today': 'اليوم', 'tab.tomorrow': 'غدا', 'tab.week': 'الأسبوع',
+    'day.today': 'اليوم', 'day.tomorrow': 'غدا',
+    'mode.retrait': 'استلام', 'mode.livraison': 'توصيل',
+    remaining: x => `الباقي ${x}`,
+    paid: 'مدفوع',
+    late: 'متأخر',
+    'empty.today': 'لا توجد طلبات اليوم', 'empty.tomorrow': 'لا توجد طلبات غدا',
+    'empty.week': 'لا توجد طلبات خلال الأيام السبعة القادمة',
+    'empty.hint': 'يمكنك إضافة طلب عبر « طلب جديد ».',
+
+    'alerts.title': 'التنبيهات',
+    'alerts.intro': 'الطلبات المتأخرة ومواعيد التوصيل أو الاستلام خلال أقل من ساعة.',
+    'alerts.none': 'لا جديد: لا توجد طلبات متأخرة ولا مواعيد خلال الساعة القادمة.',
+    'alerts.now': 'الآن',
+    'alerts.in': m => `بعد ${m} دقيقة`,
+    'alerts.aria': n => n ? `التنبيهات: ${n}` : 'التنبيهات: لا توجد تنبيهات',
+
+    'st.confirmee': 'مؤكد', 'st.preparation': 'قيد التحضير', 'st.prete': 'جاهز', 'st.remise': 'تم التسليم', 'st.annulee': 'ملغى',
+    'prod.Gâteau': 'كعكة', 'prod.Plateau salé': 'صينية مملحات', 'prod.Pâtisserie marocaine': 'حلويات مغربية', 'prod.Autre': 'أخرى',
+
+    'form.new': 'طلب جديد',
+    'form.edit': id => `تعديل الطلب #${id}`,
+    'f.cliente': 'الزبونة', 'f.cliente.ph': 'مثال: فاطمة ب.', 'f.cliente.err': 'يرجى إدخال اسم الزبونة.',
+    'f.tel': 'هاتف واتساب', 'f.tel.err': `رقم غير صالح (مثال: ${PHONE_EX} أو ${PHONE_EX_INTL}).`,
+    'f.produit': 'المنتج', 'f.produit.err': 'يرجى اختيار منتج.',
+    'f.autre': 'تحديد المنتج', 'f.autre.ph': 'مثال: كب كيك، تارت…',
+    'f.date': 'التاريخ', 'f.date.err': 'يرجى اختيار التاريخ.',
+    'f.heure': 'الساعة', 'f.heure.err': 'يرجى اختيار الساعة.',
+    'f.pers': 'عدد الأشخاص', 'f.pers.ph': 'مثال: 20', 'f.pers.err': 'عدد غير صالح.',
+    'f.details': 'التفاصيل (النكهة، التزيين، الكتابة)',
+    'f.details.ph': 'مثال: فانيليا وفراولة، وردي وذهبي. « عيد ميلاد سعيد لينا، 5 سنوات ». بدون مكسرات.',
+    'f.photo.add': 'إضافة صورة النموذج', 'f.photo.alt': 'صورة النموذج',
+    'f.photo.change': 'تغيير', 'f.photo.remove': 'حذف',
+    'f.photo.err': 'تعذّرت قراءة هذه الصورة. يرجى تجربة صورة أخرى.',
+    'f.prix': 'الثمن الإجمالي', 'f.prix.err': 'يرجى إدخال الثمن.',
+    'f.acompte': 'التسبيق المتوصل به', 'f.acompte.err': 'أكبر من الثمن الإجمالي.',
+    'f.adresse': 'عنوان التوصيل', 'f.adresse.ph': 'الحي، الزنقة، العمارة، الطابق…',
+    'due.retrait': 'الباقي للأداء عند الاستلام', 'due.livraison': 'الباقي للأداء عند التوصيل',
+    'f.submit.new': 'حفظ الطلب', 'f.submit.edit': 'حفظ التعديلات',
+    'toast.checkFields': 'يرجى مراجعة الخانات باللون الأحمر.',
+    'toast.memoryFullOrder': 'ذاكرة المتصفح ممتلئة: يرجى حذف الصورة أو بعض الطلبات القديمة.',
+    'toast.orderSaved': 'تم حفظ الطلب',
+    'toast.orderEdited': id => `تم تعديل الطلب #${id}`,
+    notFound: 'الطلب غير موجود',
+    notFoundSub: 'ربما تم حذفه.',
+
+    'd.number': id => `الطلب #${id}`, 'd.numberEmpty': 'الطلب', 'd.edit': 'تعديل',
+    'd.when': (day, h) => `${day} على الساعة ${h}`,
+    'd.retrait': 'استلام في عين المكان', 'd.livraison': 'توصيل',
+    'd.stepsLabel': 'الحالة (يمكن تغييرها باللمس)',
+    'd.cancelled': 'طلب ملغى', 'd.cancelledSub': 'لم يعد يُحتسب في المواعيد ولا في المجاميع.',
+    'd.noPhoto': 'لا توجد صورة نموذج',
+    'd.sec.details': 'التفاصيل', 'd.produit': 'المنتج', 'd.personnes': 'الأشخاص', 'd.details': 'التفاصيل', 'd.mode': 'الطريقة', 'd.adresse': 'العنوان',
+    'd.sec.paiement': 'الأداء', 'd.total': 'المجموع', 'd.acompte': 'التسبيق المتوصل به',
+    'd.paid': 'مدفوع', 'd.unpay': 'إلغاء « مدفوع »', 'd.due': 'الباقي للأداء', 'd.markPaid': 'تحديد كمدفوع',
+    'd.rank': n => n <= 10 ? `الطلب ${AR_ORDINALS[n - 1]}` : `الطلب ${n} لهذه الزبونة`,
+    'd.call': name => `اتصال: ${iso(name)}`,
+    'd.viewBon': 'عرض وصل الطلب',
+    'd.cancel': 'إلغاء الطلب', 'd.restore': 'استرجاع الطلب',
+    'toast.status': s => `الحالة: ${s}`,
+    'toast.markedPaid': 'تم تحديد الطلب كمدفوع', 'toast.unpaid': 'تم إلغاء الأداء',
+    'toast.cancelled': 'تم إلغاء الطلب', 'toast.restored': 'تم استرجاع الطلب',
+    'toast.saveFailed': 'تعذّر الحفظ: ذاكرة المتصفح ممتلئة.',
+    'cc.title': id => `إلغاء الطلب #${id}؟`,
+    'cc.text': (prod, cli) => `${iso(prod)} — ${iso(cli)}. سيبقى ظاهرًا ومشطوبًا، لكنه لن يُحتسب في المجاميع. يمكن استرجاعه لاحقًا.`,
+    'cc.ok': 'نعم، إلغاء الطلب', 'cc.no': 'لا، الاحتفاظ بالطلب',
+
+    'wa.l.confirm': 'إرسال التأكيد عبر واتساب',
+    'wa.l.ready': 'إرسال « الطلب جاهز » عبر واتساب',
+    'wa.l.thanks': 'إرسال رسالة شكر عبر واتساب',
+    'wa.l.cancel': 'إخبار الزبونة بالإلغاء',
+    'wa.when': (day, h) => `${day} على الساعة ${h}`,
+    'wa.lieu.retrait': 'استلام في عين المكان',
+    'wa.lieu.livraison': adr => adr ? `توصيل: ${iso(adr)}` : 'توصيل',
+    'wa.confirm': v => `مرحبا ${iso(v.prenom)}، نؤكد طلبك رقم ${v.id}:\n` +
+      `• ${iso(v.title)}${v.pers ? ` — ${arCount(v.pers, 'شخص', 'أشخاص')}` : ''}\n` +
+      `• يوم ${v.quand} (${v.lieu})\n` +
+      `• المجموع: ${v.total}` +
+      (v.paye ? ' (مؤدى)' : ` — التسبيق المتوصل به: ${v.acompte} — الباقي: ${v.reste}`) +
+      '\nشكرًا على ثقتك!',
+    'wa.ready': v => `مرحبا ${iso(v.prenom)}، طلبك (${iso(v.title)}) جاهز! ` +
+      (v.livraison ? 'سيتم توصيله قريبًا. ' : 'يمكنك المرور لاستلامه. ') +
+      (v.reste ? `الباقي: ${v.reste}.` : 'كل شيء مؤدى، شكرًا!'),
+    'wa.thanks': v => `مرحبا ${iso(v.prenom)}، شكرًا على طلبك! نتمنى أن يكون كل شيء قد نال إعجابك. ` +
+      (v.reste ? `يتبقى ${v.reste} للأداء. ` : '') + 'إلى اللقاء قريبًا!',
+    'wa.cancel': v => `مرحبا ${iso(v.prenom)}، نؤكد إلغاء طلبك رقم ${v.id} (${iso(v.title)}) المقرر يوم ${v.quand}. يسعدنا تواصلك معنا مجددًا.`,
+
+    'b.preview': 'كما تراه الزبونة',
+    'b.share': 'مشاركة كصورة',
+    'b.shareHint': 'يرسل صورة الوصل إلى الزبونة (واتساب…). هذا الزر لا يظهر في الصورة.',
+    'b.nomPh': '[اسم المحل]', 'b.adressePh': '[عنوان الاستلام]',
+    'b.merci': p => `شكرًا على طلبك، ${iso(p)}`,
+    'b.title': 'وصل الطلب',
+    'b.produit': 'المنتج', 'b.pour': 'العدد', 'b.personnes': n => arCount(n, 'شخص', 'أشخاص'), 'b.details': 'التفاصيل',
+    'b.retrait': 'الاستلام', 'b.livraison': 'التوصيل', 'b.adresse': 'العنوان',
+    'b.when': (day, h) => `${day} على الساعة ${h}`,
+    'b.total': 'المجموع', 'b.acompte': 'التسبيق المدفوع',
+    'b.resteRetrait': 'الباقي عند الاستلام', 'b.resteLivraison': 'الباقي عند التوصيل',
+    'b.settled': 'الطلب مؤدى بالكامل',
+    'b.cancelled': 'تم إلغاء هذا الطلب.', 'b.ready': 'طلبك جاهز!',
+    'b.foot': 'سنرسل لك رسالة عندما يصبح طلبك جاهزًا.',
+    'b.footThanks': 'شكرًا على ثقتك، إلى اللقاء قريبًا!',
+    'b.ics': 'إضافة إلى التقويم',
+    'b.question': 'سؤال؟ راسلنا عبر واتساب',
+    'b.questionMsg': v => `مرحبا، لدي سؤال حول طلبي رقم ${v.id} (${iso(v.title)}، ${v.when}).`,
+    'b.shareTitle': id => `وصل الطلب #${id}`,
+    'toast.imgDownloaded': 'تم تنزيل صورة الوصل',
+    'toast.shareFailed': 'تعذّرت المشاركة: تم تنزيل الصورة',
+    'toast.imgFailed': 'تعذّر إنشاء الصورة',
+    'ics.retrait': 'استلام', 'ics.livraison': 'توصيل', 'ics.shop': 'المحل',
+    'ics.summary': (what, title, shop) => `${what}: ${iso(title)} (${iso(shop)})`,
+    'ics.desc': (id, reste) => `الطلب رقم ${id}\nالباقي: ${reste}`,
+
+    's.section': 'المحل',
+    's.langue': 'اللغة',
+    's.prenom': 'الاسم الشخصي', 's.prenom.ph': 'مثال: Salma',
+    's.prenom.hint': 'يظهر في المواعيد بالفرنسية، وبالعربية إذا لم يُملأ الاسم بالعربية.',
+    's.prenomAr': 'الاسم الشخصي بالعربية', 's.prenomAr.ph': 'مثال: سلمى',
+    's.prenomAr.hint': 'اختياري. يظهر في الواجهة العربية: « مرحبا سلمى ».',
+    's.nom': 'اسم المحل', 's.nom.ph': 'مثال: Salma Pâtisserie',
+    's.nom.hint': 'في أعلى وصل الطلب وفي رسائل واتساب.',
+    's.nomAr': 'اسم المحل بالعربية', 's.nomAr.ph': 'مثال: حلويات سلمى',
+    's.nomAr.hint': 'اختياري. يُستعمل في الوصل والرسائل بالعربية.',
+    's.wa': 'رقم واتساب المحل', 's.wa.hint': 'لزر « سؤال؟ » في وصل الطلب.',
+    's.adresse': 'عنوان الاستلام', 's.adresse.ph': 'مثال: 12 زنقة البرتقال، المعاريف، الدار البيضاء',
+    's.adresse.hint': 'تظهر في الوصل للطلبات التي تُستلم في عين المكان.',
+    's.save': 'حفظ الإعدادات',
+    's.data': 'بياناتي',
+    's.data.text': 'تُحفظ البيانات في هذا المتصفح فقط. يُنصح بتصديرها بانتظام للاحتفاظ بنسخة منها.',
+    's.export': 'تصدير بياناتي', 's.import': 'استيراد',
+    's.proto': 'نسخة تجريبية', 's.samples': 'تحميل 5 طلبات تجريبية',
+    's.clearOrders': 'مسح الطلبات', 's.clearAll': 'مسح كل شيء',
+    's.backupHint': 'يتم تنزيل نسخة احتياطية (JSON) تلقائيًا قبل كل مسح أو استيراد.',
+    'toast.settingsSaved': 'تم حفظ الإعدادات',
+    'toast.checkWa': 'يرجى التحقق من رقم واتساب.',
+    'toast.samplesAdded': 'تمت إضافة 5 طلبات تجريبية',
+    'toast.memoryFull': 'ذاكرة المتصفح ممتلئة.',
+    'toast.exported': n => `تم تصدير ${arCount(n, 'طلب', 'طلبات')}`,
+    'err.json': 'هذا الملف ليس ملف JSON صالحًا.',
+    'err.notExport': 'هذا الملف ليس نسخة مصدّرة من التطبيق.',
+    'err.incomplete': 'بعض الطلبات في الملف غير مكتملة.',
+    'imp.title': 'استبدال كل البيانات؟',
+    'imp.text': (n, m) => `يحتوي الملف على ${arCount(n, 'طلب', 'طلبات')}. سيتم استبدال ${arCount(m, 'طلب', 'طلبات')} والإعدادات الحالية. سيتم أولًا تنزيل نسخة احتياطية من البيانات الحالية.`,
+    'imp.ok': 'نعم، استبدال',
+    'toast.importFull': 'تعذّر الاستيراد: ذاكرة المتصفح ممتلئة. لم يتم تغيير أي شيء.',
+    'toast.imported': (n, saved) => `تم استيراد ${arCount(n, 'طلب', 'طلبات')}` + (saved ? ' — تم تنزيل النسخة الاحتياطية' : ''),
+    'toast.noOrders': 'لا توجد طلبات لمسحها',
+    'co.title': 'مسح الطلبات؟',
+    'co.text': n => `سيتم حذف ${arCount(n, 'طلب', 'طلبات')} من هذا المتصفح. ستبقى الإعدادات كما هي. سيتم أولًا تنزيل نسخة احتياطية.`,
+    'co.ok': 'نعم، مسح الطلبات',
+    'toast.ordersCleared': 'تم مسح الطلبات — تم تنزيل النسخة الاحتياطية',
+    'toast.noData': 'لا توجد بيانات لمسحها',
+    'ca.title': 'مسح كل شيء؟',
+    'ca.text': n => `سيتم حذف ${arCount(n, 'طلب', 'طلبات')} والإعدادات من هذا المتصفح، وسيبدأ الترقيم من جديد من #101. سيتم أولًا تنزيل نسخة احتياطية.`,
+    'ca.ok': 'نعم، مسح كل شيء',
+    'toast.allCleared': 'تم مسح كل البيانات — تم تنزيل النسخة الاحتياطية',
+  },
+};
+
+let LANG = 'fr';
+
+function t(key, ...args) {
+  const v = I18N[LANG][key] ?? I18N.fr[key];
+  if (v === undefined) { console.warn('Traduction manquante :', key); return key; }
+  return typeof v === 'function' ? v(...args) : v;
+}
+
+// Prénom et nom de la pâtisserie dans la langue de l'app (jamais traduits automatiquement)
+function ownerFirstName(s = Settings.get()) {
+  return ((LANG === 'ar' && s.prenomAr.trim()) || s.prenom).trim();
+}
+function shopName(s = Settings.get()) {
+  return ((LANG === 'ar' && s.nomAr.trim()) || s.nom).trim();
+}
+
+/* Dates dans la langue de l'app.
+   style 'long'  : « samedi 10 octobre »   / « السبت 10 أكتوبر »
+   style 'short' : « 7 oct. »               / « 7 أكتوبر »
+   style 'bon'   : « Mer. 7 octobre »       / « الأربعاء 7 أكتوبر » */
+function formatDate(iso, style) {
+  const d = parseDate(iso);
+  if (LANG === 'ar') {
+    const dm = `${d.getDate()} ${AR_MONTHS[d.getMonth()]}`;
+    return style === 'short' ? dm : `${AR_DAYS[d.getDay()]} ${dm}`;
+  }
+  if (style === 'short') return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  if (style === 'bon') {
+    const s = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+// Charge la police arabe seulement quand l'app passe en arabe
+function ensureArabicFont() {
+  if (document.getElementById('font-ar')) return;
+  const link = document.createElement('link');
+  link.id = 'font-ar';
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap';
+  document.head.appendChild(link);
+}
+
+// Applique la langue choisie : direction, police, textes fixes de la page
+function applyLanguage() {
+  LANG = Settings.get().langue === 'ar' ? 'ar' : 'fr';
+  const root = document.documentElement;
+  root.lang = LANG;
+  root.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+  if (LANG === 'ar') ensureArabicFont();
+  document.title = t('docTitle');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+  document.querySelectorAll('[data-i18n-alt]').forEach(el => { el.alt = t(el.dataset.i18nAlt); });
+  document.querySelectorAll('[data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
+}
+
+/* =========================================================
    Utilitaires
    ========================================================= */
-// 1450 -> "1 450 DH"
+// 1450 -> "1 450". En arabe, l'espace des milliers est insécable : elle relie les chiffres,
+// sinon la lecture de droite à gauche afficherait « 450 1 ».
+function formatNumber(n) {
+  const str = Math.round(Number(n) || 0).toLocaleString('fr-FR');
+  return LANG === 'ar' ? str.replace(/[\u202F\u00A0 ]/g, '\u00A0') : str.replace(/[\u202F\u00A0]/g, ' ');
+}
+
+// 1450 -> "1 450 DH" / "1 450 درهم"
 function formatDH(n) {
-  return Math.round(Number(n) || 0).toLocaleString('fr-FR').replace(/ | /g, ' ') + ' DH';
+  return formatNumber(n) + ' ' + t('unit');
+}
+
+// Donnée saisie (nom, produit, adresse…) dans du HTML : isolée pour ne pas casser l'ordre de la phrase
+function u(str) {
+  return `<bdi>${escapeHTML(str)}</bdi>`;
 }
 
 // Date du jour au format AAAA-MM-JJ (heure locale)
@@ -1050,7 +1548,7 @@ function downloadBlob(blob, filename) {
 }
 
 /* Fenêtre de confirmation (en bas de l'écran). Renvoie une promesse : true si confirmé. */
-function confirmDialog({ title, text, ok, cancel = 'Retour' }) {
+function confirmDialog({ title, text, ok, cancel = t('back') }) {
   return new Promise(resolve => {
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
@@ -1133,7 +1631,7 @@ const OrderForm = (() => {
 
   function updateDue() {
     const { reste } = amounts();
-    $('due-label').textContent = mode === 'livraison' ? 'Reste à payer à la livraison' : 'Reste à payer au retrait';
+    $('due-label').textContent = t(mode === 'livraison' ? 'due.livraison' : 'due.retrait');
     $('due-amount').textContent = formatDH(reste);
     $('due-line').classList.toggle('zero', reste === 0 && Number($('f-prix').value) > 0);
   }
@@ -1148,8 +1646,8 @@ const OrderForm = (() => {
     setPhoto(null);
     $('f-date').value = todayISO();
     form.querySelectorAll('.field.invalid').forEach(f => f.classList.remove('invalid'));
-    $('form-title').textContent = 'Nouvelle commande';
-    $('form-submit').textContent = 'Enregistrer et voir le bon de commande';
+    $('form-title').textContent = t('form.new');
+    $('form-submit').textContent = t('f.submit.new');
     updateDue();
   }
 
@@ -1157,7 +1655,7 @@ const OrderForm = (() => {
   function edit(id) {
     reset();
     const o = Store.get(id);
-    if (!o) { toast('Commande introuvable'); return; }
+    if (!o) { toast(t('notFound')); return; }
     editingId = o.id;
     $('f-cliente').value = o.cliente;
     $('f-telephone').value = formatPhone(o.telephone);
@@ -1172,8 +1670,8 @@ const OrderForm = (() => {
     $('f-acompte').value = o.acompte || '';
     setMode(o.mode);
     $('f-adresse').value = o.adresse || '';
-    $('form-title').textContent = `Modifier la commande #${o.id}`;
-    $('form-submit').textContent = 'Enregistrer les modifications';
+    $('form-title').textContent = t('form.edit', o.id);
+    $('form-submit').textContent = t('f.submit.edit');
     updateDue();
   }
 
@@ -1241,7 +1739,7 @@ const OrderForm = (() => {
     try {
       setPhoto(await resizeImage(file));
     } catch {
-      $('photo-error').textContent = 'Impossible de lire cette image. Essayez une autre photo.';
+      $('photo-error').textContent = t('f.photo.err');
       field('photo').classList.add('invalid');
     }
   });
@@ -1251,7 +1749,7 @@ const OrderForm = (() => {
     const errors = validate();
     if (errors.length) {
       field(errors[0]).scrollIntoView({ behavior: 'smooth', block: 'center' });
-      toast('Vérifiez les champs en rouge.');
+      toast(t('toast.checkFields'));
       return;
     }
     let order;
@@ -1261,16 +1759,16 @@ const OrderForm = (() => {
         ? Store.update(editingId, collect())
         : Store.add({ ...collect(), statut: 'confirmee', paye: false });
     } catch {
-      toast("Mémoire du navigateur pleine : retirez la photo ou supprimez d'anciennes commandes.");
+      toast(t('toast.memoryFullOrder'));
       return;
     }
     if (editingId) {
-      toast(`Commande #${order.id} modifiée`);
+      toast(t('toast.orderEdited', order.id));
       // Revient au détail (sans laisser le formulaire dans l'historique)
       if (depth > 0) history.back();
       else replaceRoute('detail', order.id);
     } else {
-      toast('Commande enregistrée');
+      toast(t('toast.orderSaved'));
       replaceRoute('detail', order.id);   // le retour depuis le détail ramène à l'agenda, pas au formulaire
     }
   });
@@ -1289,11 +1787,13 @@ const STATUTS = {
 };
 
 function statutLabel(o) {
-  return o.statut === 'annulee' ? 'Annulée' : STATUTS[o.statut] || '';
+  return o.statut === 'annulee' || STATUTS[o.statut] ? t('st.' + o.statut) : '';
 }
 
+// Catégorie traduite ; le texte libre de « Autre » reste tel que saisi
 function orderTitle(o) {
-  return o.produit === 'Autre' && o.produitDetail ? o.produitDetail : o.produit;
+  if (o.produit === 'Autre' && o.produitDetail) return o.produitDetail;
+  return I18N[LANG]['prod.' + o.produit] || o.produit;
 }
 
 function resteDu(o) {
@@ -1329,12 +1829,12 @@ function addDaysISO(iso, n) {
   d.setDate(d.getDate() + n);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-// "Mer. 8 octobre" / "Aujourd'hui" / "Demain"
+// "samedi 10 octobre" / "Aujourd'hui" / "Demain" (dans la langue de l'app)
 function dayLabel(iso) {
   const today = todayISO();
-  if (iso === today) return "Aujourd'hui";
-  if (iso === addDaysISO(today, 1)) return 'Demain';
-  return parseDate(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  if (iso === today) return t('day.today');
+  if (iso === addDaysISO(today, 1)) return t('day.tomorrow');
+  return formatDate(iso, 'long');
 }
 
 /* =========================================================
@@ -1345,12 +1845,10 @@ const Agenda = (() => {
   let range = 'today';
 
   const RANGES = {
-    today:    { days: [0],                   label: "À encaisser aujourd'hui",     empty: "Aucune commande aujourd'hui" },
-    tomorrow: { days: [1],                   label: 'À encaisser demain',          empty: 'Aucune commande demain' },
-    week:     { days: [0, 1, 2, 3, 4, 5, 6], label: 'À encaisser cette semaine',   empty: 'Aucune commande sur les 7 prochains jours' },
+    today:    { days: [0],                   label: 'sum.today',    empty: 'empty.today' },
+    tomorrow: { days: [1],                   label: 'sum.tomorrow', empty: 'empty.tomorrow' },
+    week:     { days: [0, 1, 2, 3, 4, 5, 6], label: 'sum.week',     empty: 'empty.week' },
   };
-
-  const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
   /* ---------- Alertes (cloche) ----------
      - commandes en retard
@@ -1375,23 +1873,23 @@ const Agenda = (() => {
     const badge = $('alerts-badge');
     badge.hidden = n === 0;
     badge.textContent = n > 9 ? '9+' : n;
-    $('alerts-btn').setAttribute('aria-label', n ? `Alertes : ${n}` : 'Alertes : aucune');
+    $('alerts-btn').setAttribute('aria-label', t('alerts.aria', n));
   }
 
   function openAlerts() {
     const list = alerts();
     const items = list.map(({ o, kind, minutes }) => {
-      const mode = o.mode === 'livraison' ? 'Livraison' : 'Retrait';
+      const mode = t(o.mode === 'livraison' ? 'mode.livraison' : 'mode.retrait');
       const when = kind === 'late'
-        ? `<span class="chip late">En retard</span>`
-        : `<span class="chip soon">${minutes === 0 ? 'Maintenant' : `Dans ${minutes} min`}</span>`;
-      const day = kind === 'late' ? parseDate(o.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' · ' : '';
+        ? `<span class="chip late">${t('late')}</span>`
+        : `<span class="chip soon">${minutes === 0 ? t('alerts.now') : t('alerts.in', minutes)}</span>`;
+      const day = kind === 'late' ? formatDate(o.date, 'short') + ' · ' : '';
       return `
         <button class="alert-item" data-alert="${o.id}">
           <span class="num">${escapeHTML(o.heure)}</span>
           <span class="what">
-            <strong>${escapeHTML(orderTitle(o))}</strong>
-            <span>${day}${mode} · ${escapeHTML(o.cliente)}</span>
+            <strong>${u(orderTitle(o))}</strong>
+            <span>${day}${mode} · ${u(o.cliente)}</span>
           </span>
           ${when}
         </button>`;
@@ -1401,11 +1899,11 @@ const Agenda = (() => {
     backdrop.className = 'modal-backdrop';
     backdrop.innerHTML = `
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="alerts-title">
-        <h3 id="alerts-title">Alertes</h3>
+        <h3 id="alerts-title">${t('alerts.title')}</h3>
         ${list.length
-          ? `<p>Commandes en retard et livraisons ou retraits dans moins d'une heure.</p><div class="alert-list">${items}</div>`
-          : `<p>Rien à signaler : aucune commande en retard ni prévue dans l'heure.</p>`}
-        <button class="btn btn-light" data-close>Fermer</button>
+          ? `<p>${t('alerts.intro')}</p><div class="alert-list">${items}</div>`
+          : `<p>${t('alerts.none')}</p>`}
+        <button class="btn btn-light" data-close>${t('close')}</button>
       </div>`;
     const close = () => backdrop.remove();
     backdrop.addEventListener('click', e => {
@@ -1433,27 +1931,27 @@ const Agenda = (() => {
   }
 
   function card(o) {
-    const sub = [escapeHTML(o.cliente)];
-    if (o.mode === 'livraison' && o.adresse) sub.push(escapeHTML(o.adresse.split(/[,\n]/)[0]));
-    else if (o.personnes) sub.push(`${o.personnes} pers.`);
+    const sub = [u(o.cliente)];
+    if (o.mode === 'livraison' && o.adresse) sub.push(u(o.adresse.split(/[,،\n]/)[0]));
+    else if (o.personnes) sub.push(t('people', o.personnes));
     const reste = resteDu(o);
     const cancelled = isCancelled(o);
     const payChip = cancelled ? ''
-      : reste > 0 ? `<span class="chip due">Reste ${formatDH(reste)}</span>`
-      : `<span class="chip paid">Payé</span>`;
+      : reste > 0 ? `<span class="chip due">${t('remaining', formatDH(reste))}</span>`
+      : `<span class="chip paid">${t('paid')}</span>`;
     const late = isLate(o);
-    const shortDate = parseDate(o.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    const shortDate = formatDate(o.date, 'short');
     const cls = cancelled ? ' cancelled' : late ? ' late' : o.statut === 'remise' ? ' done' : '';
     return `
       <button class="order-card${cls}" data-go="detail" data-id="${o.id}">
         <div class="order-time">
           <div class="num">${escapeHTML(o.heure)}</div>
-          <div class="mode">${late ? escapeHTML(shortDate) : o.mode === 'livraison' ? 'Livraison' : 'Retrait'}</div>
+          <div class="mode">${late ? escapeHTML(shortDate) : t(o.mode === 'livraison' ? 'mode.livraison' : 'mode.retrait')}</div>
         </div>
         <div>
-          <div class="order-title">${escapeHTML(orderTitle(o))}</div>
+          <div class="order-title">${u(orderTitle(o))}</div>
           <div class="order-sub">${sub.join(' · ')}</div>
-          <div class="chips">${late ? '<span class="chip late">En retard</span>' : ''}${payChip}<span class="chip">${statutLabel(o)}</span></div>
+          <div class="chips">${late ? `<span class="chip late">${t('late')}</span>` : ''}${payChip}<span class="chip">${statutLabel(o)}</span></div>
         </div>
       </button>`;
   }
@@ -1464,25 +1962,25 @@ const Agenda = (() => {
 
     // Résumé (les commandes annulées restent visibles mais ne comptent pas)
     const active = list.filter(o => !isCancelled(o));
-    $('sum-label').textContent = RANGES[range].label;
-    $('sum-due').textContent = formatDH(active.reduce((s, o) => s + resteDu(o), 0)).replace(' DH', '');
-    $('sum-count').textContent = plural(active.length, 'commande');
-    $('sum-deliveries').textContent = plural(active.filter(o => o.mode === 'livraison').length, 'livraison');
+    $('sum-label').textContent = t(RANGES[range].label);
+    $('sum-due').textContent = formatNumber(active.reduce((s, o) => s + resteDu(o), 0));
+    $('sum-count').textContent = t('orders', active.length);
+    $('sum-deliveries').textContent = t('deliveries', active.filter(o => o.mode === 'livraison').length);
     updateBadge(all);
 
     // Onglets (avec le nombre de commandes pour Demain et Semaine, comme sur la maquette)
-    $('agenda-tabs').querySelectorAll('.tab').forEach(t => {
-      const key = t.dataset.range;
+    $('agenda-tabs').querySelectorAll('.tab').forEach(tab => {
+      const key = tab.dataset.range;
       const n = ordersFor(key, all).filter(o => !isCancelled(o)).length;
-      const base = { today: "Aujourd'hui", tomorrow: 'Demain', week: 'Semaine' }[key];
-      t.textContent = key !== 'today' && n ? `${base} · ${n}` : base;
-      t.classList.toggle('active', key === range);
-      t.setAttribute('aria-selected', String(key === range));
+      const base = t('tab.' + key);
+      tab.textContent = key !== 'today' && n ? `${base} · ${n}` : base;
+      tab.classList.toggle('active', key === range);
+      tab.setAttribute('aria-selected', String(key === range));
     });
 
     // Liste (groupée par jour en vue Semaine)
     if (!list.length) {
-      $('order-list').innerHTML = `<div class="empty"><strong>${RANGES[range].empty}</strong>Ajoutez-en une avec « Nouvelle commande ».</div>`;
+      $('order-list').innerHTML = `<div class="empty"><strong>${t(RANGES[range].empty)}</strong>${t('empty.hint')}</div>`;
       return;
     }
     let html = '';
@@ -1498,9 +1996,9 @@ const Agenda = (() => {
   }
 
   $('agenda-tabs').addEventListener('click', e => {
-    const t = e.target.closest('.tab');
-    if (!t) return;
-    range = t.dataset.range;
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
+    range = tab.dataset.range;
     render();
   });
 
@@ -1521,130 +2019,112 @@ const Detail = (() => {
   function prenom(o) { return o.cliente.split(/\s+/)[0]; }
 
   function whenText(o) {
-    return `${dayLabel(o.date)} à ${o.heure.replace(':', 'h')}`;
+    return t('d.when', dayLabel(o.date), o.heure);
   }
 
-  // Message WhatsApp adapté au statut de la commande
+  // Message WhatsApp adapté au statut de la commande (dans la langue de l'app)
   function whatsapp(o) {
     const reste = resteDu(o);
-    const lieu = o.mode === 'livraison'
-      ? `livraison${o.adresse ? ' : ' + o.adresse : ''}`
-      : 'retrait à la boutique';
-    const quand = parseDate(o.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ' à ' + o.heure.replace(':', 'h');
-
-    if (isCancelled(o)) {
-      return {
-        label: "Prévenir la cliente de l'annulation",
-        text: `Bonjour ${prenom(o)}, nous vous confirmons l'annulation de votre commande n°${o.id} (${orderTitle(o)}) prévue le ${quand}. N'hésitez pas à nous recontacter !`,
-      };
-    }
-    if (o.statut === 'prete') {
-      return {
-        label: 'Envoyer « commande prête » sur WhatsApp',
-        text: `Bonjour ${prenom(o)}, votre commande (${orderTitle(o)}) est prête ! ` +
-          (o.mode === 'livraison' ? 'Elle part bientôt en livraison. ' : 'Vous pouvez venir la récupérer. ') +
-          (reste > 0 ? `Reste à régler : ${formatDH(reste)}.` : 'Tout est déjà réglé, merci !'),
-      };
-    }
-    if (o.statut === 'remise') {
-      return {
-        label: 'Envoyer un remerciement sur WhatsApp',
-        text: `Bonjour ${prenom(o)}, merci pour votre commande ! J'espère que tout vous a plu. ` +
-          (reste > 0 ? `Il reste ${formatDH(reste)} à régler. ` : '') + 'À très bientôt !',
-      };
-    }
-    return {
-      label: 'Envoyer la confirmation sur WhatsApp',
-      text: `Bonjour ${prenom(o)}, votre commande n°${o.id} est bien confirmée :\n` +
-        `• ${orderTitle(o)}${o.personnes ? ` pour ${o.personnes} personnes` : ''}\n` +
-        `• Le ${quand} (${lieu})\n` +
-        `• Total : ${formatDH(o.prix)}` +
-        (o.paye ? ' (réglé)' : ` — acompte reçu : ${formatDH(o.acompte)} — reste à payer : ${formatDH(reste)}`) +
-        '\nMerci pour votre confiance !',
+    const v = {
+      prenom: prenom(o),
+      id: o.id,
+      title: orderTitle(o),
+      pers: o.personnes,
+      quand: t('wa.when', formatDate(o.date, 'long'), o.heure),
+      lieu: o.mode === 'livraison' ? t('wa.lieu.livraison', o.adresse) : t('wa.lieu.retrait'),
+      livraison: o.mode === 'livraison',
+      paye: o.paye,
+      total: formatDH(o.prix),
+      acompte: formatDH(o.acompte),
+      reste: reste > 0 ? formatDH(reste) : '',
     };
+    if (isCancelled(o)) return { label: t('wa.l.cancel'), text: t('wa.cancel', v) };
+    if (o.statut === 'prete') return { label: t('wa.l.ready'), text: t('wa.ready', v) };
+    if (o.statut === 'remise') return { label: t('wa.l.thanks'), text: t('wa.thanks', v) };
+    return { label: t('wa.l.confirm'), text: t('wa.confirm', { ...v, reste: v.reste || formatDH(0) }) };
   }
 
   function render(id) {
     const o = Store.get(id);
     orderId = id;
-    document.getElementById('detail-number').textContent = o ? `Commande #${o.id}` : 'Commande';
+    document.getElementById('detail-number').textContent = o ? t('d.number', o.id) : t('d.numberEmpty');
     const editBtn = document.getElementById('detail-edit');
     editBtn.hidden = !o || isCancelled(o);
     if (o) editBtn.dataset.id = o.id;
     if (!o) {
-      body.innerHTML = `<div class="empty"><strong>Commande introuvable</strong>Elle a peut-être été supprimée.</div>`;
+      body.innerHTML = `<div class="empty"><strong>${t('notFound')}</strong>${t('notFoundSub')}</div>`;
       return;
     }
 
     const keys = Object.keys(STATUTS);
     const current = keys.indexOf(o.statut);
     const steps = keys.map((k, i) =>
-      `<button class="step${i <= current ? ' done' : ''}${i === current ? ' current' : ''}" data-statut="${k}" aria-pressed="${i === current}">${STATUTS[k]}</button>`
+      `<button class="step${i <= current ? ' done' : ''}${i === current ? ' current' : ''}" data-statut="${k}" aria-pressed="${i === current}">${t('st.' + k)}</button>`
     ).join('');
 
     const rows = [];
-    if (o.produit === 'Autre') rows.push(['Produit', 'Autre']);
-    if (o.personnes) rows.push(['Personnes', o.personnes]);
-    if (o.details) rows.push(['Détails', o.details]);
-    rows.push(['Mode', o.mode === 'livraison' ? 'Livraison' : 'Retrait en boutique']);
-    if (o.mode === 'livraison') rows.push(['Adresse', o.adresse || '—']);
+    if (o.produit === 'Autre') rows.push([t('d.produit'), t('prod.Autre')]);
+    if (o.personnes) rows.push([t('d.personnes'), o.personnes]);
+    if (o.details) rows.push([t('d.details'), o.details]);
+    rows.push([t('d.mode'), t(o.mode === 'livraison' ? 'd.livraison' : 'd.retrait')]);
+    if (o.mode === 'livraison') rows.push([t('d.adresse'), o.adresse || '—']);
 
     const cancelled = isCancelled(o);
     const reste = resteDu(o);
     const payment = cancelled ? ''
       : o.paye || reste === 0
-      ? `<div class="paid-box"><span>Payé</span><span class="num">${formatDH(o.prix)}</span></div>
-         ${o.paye ? '<button class="link-btn" data-action="unpay">Annuler « payé »</button>' : ''}`
-      : `<div class="due-box"><span>Reste à payer</span><span class="num">${formatDH(reste)}</span></div>
-         <button class="btn btn-outline" data-action="pay">Marquer comme payé</button>`;
+      ? `<div class="paid-box"><span>${t('d.paid')}</span><span class="num">${formatDH(o.prix)}</span></div>
+         ${o.paye ? `<button class="link-btn" data-action="unpay">${t('d.unpay')}</button>` : ''}`
+      : `<div class="due-box"><span>${t('d.due')}</span><span class="num">${formatDH(reste)}</span></div>
+         <button class="btn btn-outline" data-action="pay">${t('d.markPaid')}</button>`;
 
     const sameClient = Store.all().filter(x => x.telephone === o.telephone);
     const rank = sameClient.filter(x => x.id <= o.id).length;
-    const initials = o.cliente.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const initials = o.cliente.split(/\s+/).map(w => w[0]).slice(0, 2).join(LANG === 'ar' ? '\u200C' : '').toUpperCase();
     const wa = whatsapp(o);
-    const shopName = Settings.get().nom.trim();
-    if (shopName) wa.text += `\n— ${shopName}`;   // signature de la pâtisserie
+    const shop = shopName();
+    if (shop) wa.text += `\n— ${iso(shop)}`;   // signature de la pâtisserie
     const waUrl = `https://wa.me/${waNumber(o.telephone)}?text=${encodeURIComponent(wa.text)}`;
 
     body.innerHTML = `
       <h2 class="detail-title">${escapeHTML(orderTitle(o))}</h2>
-      <p class="detail-sub">${escapeHTML(whenText(o))} · ${o.mode === 'livraison' ? 'Livraison' : 'Retrait en boutique'}${isLate(o) ? '<span class="chip late">En retard</span>' : ''}</p>
+      <p class="detail-sub">${escapeHTML(whenText(o))} · ${t(o.mode === 'livraison' ? 'd.livraison' : 'd.retrait')}${isLate(o) ? `<span class="chip late">${t('late')}</span>` : ''}</p>
 
       ${cancelled
-        ? `<div class="cancel-banner">Commande annulée<span>Elle ne compte plus dans l'agenda ni dans les totaux.</span></div>`
-        : `<p class="steps-label">Statut (touchez pour changer)</p>
+        ? `<div class="cancel-banner">${t('d.cancelled')}<span>${t('d.cancelledSub')}</span></div>`
+        : `<p class="steps-label">${t('d.stepsLabel')}</p>
            <div class="steps">${steps}</div>`}
 
       ${o.photo
-        ? `<img class="photo-full" src="${o.photo}" alt="Photo modèle">`
-        : `<div class="photo-box compact"><div>${ICON_CAKE}<div>Pas de photo modèle</div></div></div>`}
+        ? `<img class="photo-full" src="${o.photo}" alt="${t('f.photo.alt')}">`
+        : `<div class="photo-box compact"><div>${ICON_CAKE}<div>${t('d.noPhoto')}</div></div></div>`}
 
       <div class="card">
-        <p class="section-label">Détails</p>
-        <dl class="rows">${rows.map(([k, v]) => `<dt>${k}</dt><dd class="detail-text">${escapeHTML(v)}</dd>`).join('')}</dl>
+        <p class="section-label">${t('d.sec.details')}</p>
+        <dl class="rows">${rows.map(([k, v]) => `<dt>${k}</dt><dd class="detail-text">${u(v)}</dd>`).join('')}</dl>
       </div>
 
       <div class="card">
-        <p class="section-label">Paiement</p>
-        <div class="pay-row"><span>Total</span><span class="num">${formatDH(o.prix)}</span></div>
-        <div class="pay-row"><span>Acompte reçu</span><span class="num">${formatDH(o.acompte)}</span></div>
+        <p class="section-label">${t('d.sec.paiement')}</p>
+        <div class="pay-row"><span>${t('d.total')}</span><span class="num">${formatDH(o.prix)}</span></div>
+        <div class="pay-row"><span>${t('d.acompte')}</span><span class="num">${formatDH(o.acompte)}</span></div>
         ${payment}
       </div>
 
       <div class="card client-card">
         <div class="avatar">${escapeHTML(initials)}</div>
         <div class="who">
-          <strong>${escapeHTML(o.cliente)}</strong>
-          <span>${formatPhone(o.telephone)} · ${rank === 1 ? '1re commande' : rank + 'e commande'}</span>
+          <strong>${u(o.cliente)}</strong>
+          <span><span class="ltr">${formatPhone(o.telephone)}</span> · ${t('d.rank', rank)}</span>
         </div>
-        <a class="icon-btn outlined" href="tel:${o.telephone}" aria-label="Appeler ${escapeHTML(o.cliente)}">${ICON_PHONE}</a>
+        <a class="icon-btn outlined" href="tel:${o.telephone}" aria-label="${escapeHTML(t('d.call', o.cliente))}">${ICON_PHONE}</a>
       </div>
 
       <a class="btn btn-whatsapp" href="${waUrl}" target="_blank" rel="noopener">${ICON_WA}${wa.label}</a>
-      <button class="btn btn-light" data-go="bon" data-id="${o.id}">Voir le bon de commande client</button>
+      <button class="btn btn-light" data-go="bon" data-id="${o.id}">${t('d.viewBon')}</button>
       ${cancelled
-        ? '<button class="btn btn-danger-outline" data-action="restore">Rétablir la commande</button>'
-        : '<button class="btn btn-danger-outline" data-action="cancel">Annuler la commande</button>'}
+        ? `<button class="btn btn-danger-outline" data-action="restore">${t('d.restore')}</button>`
+        : `<button class="btn btn-danger-outline" data-action="cancel">${t('d.cancel')}</button>`}
     `;
   }
 
@@ -1652,7 +2132,7 @@ const Detail = (() => {
     try {
       Store.update(orderId, patch);
     } catch {
-      toast("Impossible d'enregistrer : mémoire du navigateur pleine.");
+      toast(t('toast.saveFailed'));
       return;
     }
     render(orderId);
@@ -1661,24 +2141,24 @@ const Detail = (() => {
 
   body.addEventListener('click', async e => {
     const step = e.target.closest('[data-statut]');
-    if (step) return update({ statut: step.dataset.statut }, `Statut : ${STATUTS[step.dataset.statut]}`);
+    if (step) return update({ statut: step.dataset.statut }, t('toast.status', t('st.' + step.dataset.statut)));
     const action = e.target.closest('[data-action]')?.dataset.action;
-    if (action === 'pay') update({ paye: true }, 'Commande marquée comme payée');
-    if (action === 'unpay') update({ paye: false }, 'Paiement annulé');
+    if (action === 'pay') update({ paye: true }, t('toast.markedPaid'));
+    if (action === 'unpay') update({ paye: false }, t('toast.unpaid'));
     if (action === 'cancel') {
       const o = Store.get(orderId);
       const ok = await confirmDialog({
-        title: `Annuler la commande #${o.id} ?`,
-        text: `${orderTitle(o)} pour ${o.cliente.replace(/\.+$/, '')}. Elle restera visible, barrée, mais ne comptera plus dans les totaux. Vous pourrez la rétablir.`,
-        ok: 'Oui, annuler la commande',
-        cancel: 'Non, garder la commande',
+        title: t('cc.title', o.id),
+        text: t('cc.text', orderTitle(o), o.cliente.replace(/\.+$/, '')),
+        ok: t('cc.ok'),
+        cancel: t('cc.no'),
       });
       // On mémorise le statut précédent pour pouvoir rétablir la commande
-      if (ok) update({ statut: 'annulee', statutAvantAnnulation: o.statut }, 'Commande annulée');
+      if (ok) update({ statut: 'annulee', statutAvantAnnulation: o.statut }, t('toast.cancelled'));
     }
     if (action === 'restore') {
       const o = Store.get(orderId);
-      update({ statut: o.statutAvantAnnulation || 'confirmee' }, 'Commande rétablie');
+      update({ statut: o.statutAvantAnnulation || 'confirmee' }, t('toast.restored'));
     }
   });
 
@@ -1692,12 +2172,9 @@ const Bon = (() => {
   const body = document.getElementById('bon-body');
   let current = null;
 
-  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
-  // "Mer. 7 octobre à 11:00"
+  // "Mer. 7 octobre à 11:00" / "الأربعاء 7 أكتوبر على الساعة 11:00"
   function longWhen(o) {
-    const day = parseDate(o.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' });
-    return `${capitalize(day)} à ${o.heure}`;
+    return t('b.when', formatDate(o.date, 'bon'), o.heure);
   }
 
   // Fichier calendrier (.ics) pour "Ajouter à mon calendrier"
@@ -1708,8 +2185,8 @@ const Bon = (() => {
     const endMin = h * 60 + m + 30;
     const endDate = endMin >= 1440 ? addDaysISO(o.date, 1) : o.date;
     const endTime = `${String(Math.floor(endMin % 1440 / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
-    const shop = s.nom || 'la pâtisserie';
-    const what = o.mode === 'livraison' ? 'Livraison' : 'Retrait';
+    const shop = shopName(s) || t('ics.shop');
+    const what = t(o.mode === 'livraison' ? 'ics.livraison' : 'ics.retrait');
     const lieu = o.mode === 'livraison' ? o.adresse : s.adresse;
     const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
     return [
@@ -1719,44 +2196,46 @@ const Bon = (() => {
       `DTSTAMP:${now}`,
       `DTSTART:${stamp(o.date, o.heure)}`,
       `DTEND:${stamp(endDate, endTime)}`,
-      `SUMMARY:${esc(`${what} : ${orderTitle(o)} (${shop})`)}`,
+      `SUMMARY:${esc(t('ics.summary', what, orderTitle(o), shop))}`,
       lieu ? `LOCATION:${esc(lieu)}` : null,
-      `DESCRIPTION:${esc(`Commande n°${o.id}\nReste à régler : ${formatDH(resteDu(o))}`)}`,
+      `DESCRIPTION:${esc(t('ics.desc', o.id, formatDH(resteDu(o))))}`,
       'END:VEVENT', 'END:VCALENDAR',
     ].filter(Boolean).join('\r\n');
   }
 
-  // Contenu du bon, partagé entre la page et l'image PNG
+  // Contenu du bon, partagé entre la page et l'image PNG (dans la langue de l'app)
   function model(o, s) {
     const livraison = o.mode === 'livraison';
     const cancelled = isCancelled(o);
     const reste = resteDu(o);
 
-    const rows = [{ label: 'Produit', value: orderTitle(o), strong: true }];
-    if (o.personnes) rows.push({ label: 'Pour', value: `${o.personnes} personnes` });
-    if (o.details) rows.push({ label: 'Détails', value: o.details });
-    rows.push({ label: livraison ? 'Livraison' : 'Retrait', value: longWhen(o), strong: true });
-    rows.push({ label: 'Adresse', value: livraison ? (o.adresse || '—') : (s.adresse || '[Adresse de la boutique]') });
+    const rows = [{ label: t('b.produit'), value: iso(orderTitle(o)), strong: true }];
+    if (o.personnes) rows.push({ label: t('b.pour'), value: t('b.personnes', o.personnes) });
+    if (o.details) rows.push({ label: t('b.details'), value: iso(o.details) });
+    rows.push({ label: t(livraison ? 'b.livraison' : 'b.retrait'), value: longWhen(o), strong: true });
+    rows.push({ label: t('b.adresse'), value: livraison ? iso(o.adresse || '—') : (s.adresse ? iso(s.adresse) : t('b.adressePh')) });
 
     const totals = cancelled ? [] : [
-      { label: 'Total', value: formatDH(o.prix) },
-      ...(o.acompte > 0 ? [{ label: 'Acompte versé', value: formatDH(o.acompte), kind: 'acompte' }] : []),
+      { label: t('b.total'), value: formatDH(o.prix) },
+      ...(o.acompte > 0 ? [{ label: t('b.acompte'), value: formatDH(o.acompte), kind: 'acompte' }] : []),
       reste > 0
-        ? { label: `Reste à régler ${livraison ? 'à la livraison' : 'au retrait'}`, value: formatDH(reste), kind: 'reste' }
-        : { label: 'Commande entièrement réglée', value: '✓', kind: 'settled' },
+        ? { label: t(livraison ? 'b.resteLivraison' : 'b.resteRetrait'), value: formatDH(reste), kind: 'reste' }
+        : { label: t('b.settled'), value: '✓', kind: 'settled' },
     ];
 
     let notice = null;
-    let foot = 'Vous recevrez un message quand votre commande sera prête.';
-    if (cancelled) { notice = { text: 'Cette commande a été annulée.', kind: 'cancelled' }; foot = ''; }
-    else if (o.statut === 'prete') { notice = { text: 'Votre commande est prête !', kind: 'ready' }; foot = ''; }
-    else if (o.statut === 'remise') { foot = 'Merci pour votre confiance, à bientôt !'; }
+    let foot = t('b.foot');
+    if (cancelled) { notice = { text: t('b.cancelled'), kind: 'cancelled' }; foot = ''; }
+    else if (o.statut === 'prete') { notice = { text: t('b.ready'), kind: 'ready' }; foot = ''; }
+    else if (o.statut === 'remise') { foot = t('b.footThanks'); }
 
+    const shop = shopName(s);
     return {
       id: o.id,
-      nom: s.nom || '[Nom de la pâtisserie]',
-      initial: (s.nom || 'P').trim().charAt(0).toUpperCase(),
-      merci: `Merci pour votre commande, ${o.cliente.split(/\s+/)[0]}`,
+      rtl: LANG === 'ar',
+      nom: shop || t('b.nomPh'),
+      initial: (shop || (LANG === 'ar' ? 'ك' : 'P')).trim().charAt(0).toUpperCase(),
+      merci: t('b.merci', o.cliente.split(/\s+/)[0]),
       notice, rows, totals, foot,
     };
   }
@@ -1767,13 +2246,13 @@ const Bon = (() => {
     current = o;
     document.getElementById('bon-share-bar').hidden = !o;
     if (!o) {
-      body.innerHTML = `<div class="empty"><strong>Commande introuvable</strong>Elle a peut-être été supprimée.</div>`;
+      body.innerHTML = `<div class="empty"><strong>${t('notFound')}</strong>${t('notFoundSub')}</div>`;
       return;
     }
 
     const m = model(o, s);
     const shopPhone = normalizePhone(s.whatsapp || '');
-    const question = `Bonjour, j'ai une question sur ma commande n°${o.id} (${orderTitle(o)}, ${longWhen(o)}).`;
+    const question = t('b.questionMsg', { id: o.id, title: orderTitle(o), when: longWhen(o) });
     const canAddToCalendar = !isCancelled(o) && o.date >= todayISO() && o.statut !== 'remise';
     const totalCls = { acompte: ' acompte', reste: ' reste', settled: ' reste settled' };
 
@@ -1787,16 +2266,16 @@ const Bon = (() => {
       ${m.notice ? `<div class="bon-notice ${m.notice.kind}">${m.notice.text}</div>` : ''}
 
       <div class="card">
-        <div class="bon-title"><h2>Bon de commande</h2><span>#${m.id}</span></div>
-        <dl class="rows">${m.rows.map(r => `<dt>${r.label}</dt><dd class="detail-text${r.strong ? ' strong' : ''}">${escapeHTML(r.value)}</dd>`).join('')}</dl>
+        <div class="bon-title"><h2>${t('b.title')}</h2><span>#${m.id}</span></div>
+        <dl class="rows">${m.rows.map(r => `<dt>${r.label}</dt><dd class="detail-text${r.strong ? ' strong' : ''}">${u(r.value)}</dd>`).join('')}</dl>
       </div>
 
-      ${m.totals.length ? `<div class="card">${m.totals.map(t =>
-        `<div class="bon-total${totalCls[t.kind] || ''}"><span>${escapeHTML(t.label)}</span><span class="num">${escapeHTML(t.value)}</span></div>`).join('')}</div>` : ''}
+      ${m.totals.length ? `<div class="card">${m.totals.map(tot =>
+        `<div class="bon-total${totalCls[tot.kind] || ''}"><span>${escapeHTML(tot.label)}</span><span class="num">${escapeHTML(tot.value)}</span></div>`).join('')}</div>` : ''}
 
-      ${canAddToCalendar ? '<button class="btn btn-dark" data-action="ics">Ajouter à mon calendrier</button>' : ''}
+      ${canAddToCalendar ? `<button class="btn btn-dark" data-action="ics">${t('b.ics')}</button>` : ''}
       ${shopPhone
-        ? `<a class="btn btn-light" href="https://wa.me/${waNumber(shopPhone)}?text=${encodeURIComponent(question)}" target="_blank" rel="noopener">Une question ? Écrire sur WhatsApp</a>`
+        ? `<a class="btn btn-light" href="https://wa.me/${waNumber(shopPhone)}?text=${encodeURIComponent(question)}" target="_blank" rel="noopener">${t('b.question')}</a>`
         : ''}
 
       ${m.foot ? `<p class="bon-foot">${m.foot}</p>` : ''}
@@ -1848,7 +2327,8 @@ const Bon = (() => {
     ctx.font = font;
     if ('letterSpacing' in ctx) {
       const size = Number((font.match(/(\d+)px/) || [])[1]) || 0;
-      ctx.letterSpacing = font.startsWith('800') ? `${(-0.03 * size).toFixed(2)}px` : '0px';
+      // En arabe, pas d'espacement serré : il casserait la liaison des lettres
+      ctx.letterSpacing = font.startsWith('800') && LANG !== 'ar' ? `${(-0.03 * size).toFixed(2)}px` : '0px';
     }
   }
 
@@ -1858,10 +2338,14 @@ const Bon = (() => {
     const CP = 18;             // marge intérieure des cartes
     const inner = W - 2 * P - 2 * CP;
     let y = 32;
-    const text = (t, x, yy, font, color, align = 'left') => {
+    // En arabe, tout est en miroir : ce qui est à gauche passe à droite
+    const X = x => m.rtl ? W - x : x;
+    const A = a => m.rtl ? ({ left: 'right', right: 'left' }[a] || a) : a;
+    ctx.direction = m.rtl ? 'rtl' : 'ltr';
+    const text = (str, x, yy, font, color, align = 'left') => {
       if (!draw) return;
-      setFont(ctx, font); ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'alphabetic';
-      ctx.fillText(t, x, yy);
+      setFont(ctx, font); ctx.fillStyle = color; ctx.textAlign = A(align); ctx.textBaseline = 'alphabetic';
+      ctx.fillText(str, X(x), yy);
     };
 
     if (draw) { ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, ctx.canvas.height); }
@@ -1898,7 +2382,7 @@ const Bon = (() => {
     const cardH = CP + 24 + 14 + rowsLaidOut.reduce((s, r) => s + r.lines.length * LH + 9, 0) - 9 + CP;
     if (draw) roundRect(ctx, P, y, W - 2 * P, cardH, 18, C.surface, null, true);
     let cy = y + CP + 18;
-    text('Bon de commande', P + CP, cy, `800 17px ${FONT}`, C.text);
+    text(t('b.title'), P + CP, cy, `800 17px ${FONT}`, C.text);
     text('#' + m.id, W - P - CP, cy, `500 14px ${FONT}`, C.text2, 'right');
     cy += 6 + 14;
     rowsLaidOut.forEach(r => {
@@ -1910,20 +2394,20 @@ const Bon = (() => {
 
     // Carte montants
     if (m.totals.length) {
-      const rowsH = m.totals.map(t => (t.kind === 'reste' || t.kind === 'settled') ? 58 : 28);
+      const rowsH = m.totals.map(tot => (tot.kind === 'reste' || tot.kind === 'settled') ? 58 : 28);
       const totH = CP + rowsH.reduce((a, b) => a + b, 0) + CP - 4;
       if (draw) roundRect(ctx, P, y, W - 2 * P, totH, 18, C.surface, null, true);
       let ty = y + CP;
-      m.totals.forEach((t, i) => {
-        if (t.kind === 'reste' || t.kind === 'settled') {
+      m.totals.forEach((tot, i) => {
+        if (tot.kind === 'reste' || tot.kind === 'settled') {
           if (draw) { ctx.fillStyle = C.border; ctx.fillRect(P + CP, ty + 6, inner, 1); }
-          const color = t.kind === 'settled' ? C.paid : C.text;
-          text(t.label, P + CP, ty + 42, `800 15px ${FONT}`, color);
-          text(t.value, W - P - CP, ty + 45, `800 28px ${FONT}`, color, 'right');
+          const color = tot.kind === 'settled' ? C.paid : C.text;
+          text(tot.label, P + CP, ty + 42, `800 15px ${FONT}`, color);
+          text(tot.value, W - P - CP, ty + 45, `800 28px ${FONT}`, color, 'right');
         } else {
-          const color = t.kind === 'acompte' ? C.paid : C.text;
-          text(t.label, P + CP, ty + 18, `500 15px ${FONT}`, color);
-          text(t.value, W - P - CP, ty + 18, `800 15px ${FONT}`, color, 'right');
+          const color = tot.kind === 'acompte' ? C.paid : C.text;
+          text(tot.label, P + CP, ty + 18, `500 15px ${FONT}`, color);
+          text(tot.value, W - P - CP, ty + 18, `800 15px ${FONT}`, color, 'right');
         }
         ty += rowsH[i];
       });
@@ -1942,6 +2426,7 @@ const Bon = (() => {
     // S'assure que les polices sont chargées avant de dessiner
     try {
       await Promise.all([500, 600, 700, 800].map(w => document.fonts.load(`${w} 15px "Plus Jakarta Sans"`)));
+      if (LANG === 'ar') await Promise.all([500, 600, 700].map(w => document.fonts.load(`${w} 15px "IBM Plex Sans Arabic"`, 'ا')));
     } catch { /* hors ligne : polices de secours */ }
     loadTokens();
 
@@ -1971,16 +2456,16 @@ const Bon = (() => {
       // Téléphone : partage natif (WhatsApp, etc.). Sinon : téléchargement.
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], title: `Bon de commande #${current.id}` });
+          await navigator.share({ files: [file], title: t('b.shareTitle', current.id) });
         } catch (err) {
-          if (err.name !== 'AbortError') { download(blob, filename); toast('Partage impossible : image téléchargée'); }
+          if (err.name !== 'AbortError') { download(blob, filename); toast(t('toast.shareFailed')); }
         }
       } else {
         download(blob, filename);
-        toast('Image du bon téléchargée');
+        toast(t('toast.imgDownloaded'));
       }
     } catch {
-      toast("Impossible de créer l'image");
+      toast(t('toast.imgFailed'));
     } finally {
       btn.disabled = false;
     }
@@ -2007,7 +2492,9 @@ const Reglages = (() => {
   function render() {
     const s = Settings.get();
     $('s-prenom').value = s.prenom;
+    $('s-prenom-ar').value = s.prenomAr;
     $('s-nom').value = s.nom;
+    $('s-nom-ar').value = s.nomAr;
     $('s-whatsapp').value = s.whatsapp ? formatPhone(s.whatsapp) : '';
     $('s-adresse').value = s.adresse;
     form.querySelectorAll('.field.invalid').forEach(f => f.classList.remove('invalid'));
@@ -2021,53 +2508,70 @@ const Reglages = (() => {
     const phone = rawPhone ? normalizePhone(rawPhone) : '';
     if (rawPhone && !phone) {
       form.querySelector('[data-field="whatsapp"]').classList.add('invalid');
-      toast('Vérifiez le numéro WhatsApp.');
+      toast(t('toast.checkWa'));
       return;
     }
     try {
       Settings.save({
         prenom: $('s-prenom').value.trim(),
+        prenomAr: $('s-prenom-ar').value.trim(),
         nom: $('s-nom').value.trim(),
+        nomAr: $('s-nom-ar').value.trim(),
         whatsapp: phone,
         adresse: $('s-adresse').value.trim(),
       });
     } catch {
-      toast("Impossible d'enregistrer : mémoire du navigateur pleine.");
+      toast(t('toast.saveFailed'));
       return;
     }
     render();
-    toast('Réglages enregistrés');
+    toast(t('toast.settingsSaved'));
   });
 
-  /* ---------- 5 commandes d'exemple (dates calculées à partir d'aujourd'hui) ---------- */
+  // Langue : appliquée et enregistrée tout de suite (les champs en cours de saisie ne sont pas touchés)
+  $('s-langue').addEventListener('click', e => {
+    const b = e.target.closest('[data-lang]');
+    if (!b || b.dataset.lang === LANG) return;
+    try { Settings.save({ langue: b.dataset.lang }); } catch { toast(t('toast.saveFailed')); return; }
+    applyLanguage();
+  });
+
+  /* ---------- 5 commandes d'exemple (dates calculées à partir d'aujourd'hui) ----------
+     En arabe, les exemples sont écrits en arabe ; la catégorie enregistrée reste la même. */
   function sampleOrders() {
-    const t = todayISO();
+    const t0 = todayISO();
     const base = { produitDetail: '', photo: null, adresse: '', paye: false };
-    return [
-      { ...base, cliente: 'Fatima Bennani', telephone: '0612345678', produit: 'Gâteau', date: t, heure: '11:00', personnes: 20,
-        details: 'Vanille fraises, rose et doré, couronne.\n« Joyeux anniversaire Lina, 5 ans »\nSans fruits à coque.',
-        prix: 650, acompte: 300, mode: 'retrait', statut: 'preparation' },
-      { ...base, cliente: 'Nadia Kettani', telephone: '0661234567', produit: 'Plateau salé', date: t, heure: '14:30', personnes: 30,
-        details: '2 plateaux : briouates, pastilla mini, msemen farci.', prix: 480, acompte: 480, mode: 'livraison',
-        adresse: 'Maârif, rue Ibnou Mounir, imm. 12, 3e étage', statut: 'prete' },
-      { ...base, cliente: 'Yasmine Rami', telephone: '0677889900', produit: 'Gâteau', date: t, heure: '17:00', personnes: 60,
-        details: 'Gâteau de fiançailles 3 étages, crème au beurre, fleurs fraîches blanches.', prix: 1500, acompte: 600,
-        mode: 'livraison', adresse: 'Gauthier, bd Moulay Youssef, villa 8', statut: 'confirmee' },
-      { ...base, cliente: 'Mme Alaoui', telephone: '0522334455', produit: 'Pâtisserie marocaine', date: addDaysISO(t, 1), heure: '18:30',
-        personnes: null, details: 'Cornes de gazelle 2 kg, boîte cadeau.', prix: 500, acompte: 300, mode: 'retrait', statut: 'confirmee' },
-      { ...base, cliente: 'Khadija Mansouri', telephone: '0655443322', produit: 'Autre', produitDetail: 'Cupcakes ×24', date: addDaysISO(t, -1),
-        heure: '16:00', personnes: null, details: 'Thème licorne, rose et blanc.', prix: 360, acompte: 100, mode: 'retrait', statut: 'prete' },
+    const common = [
+      { telephone: '0612345678', produit: 'Gâteau', date: t0, heure: '11:00', personnes: 20, prix: 650, acompte: 300, mode: 'retrait', statut: 'preparation' },
+      { telephone: '0661234567', produit: 'Plateau salé', date: t0, heure: '14:30', personnes: 30, prix: 480, acompte: 480, mode: 'livraison', statut: 'prete' },
+      { telephone: '0677889900', produit: 'Gâteau', date: t0, heure: '17:00', personnes: 60, prix: 1500, acompte: 600, mode: 'livraison', statut: 'confirmee' },
+      { telephone: '0522334455', produit: 'Pâtisserie marocaine', date: addDaysISO(t0, 1), heure: '18:30', personnes: null, prix: 500, acompte: 300, mode: 'retrait', statut: 'confirmee' },
+      { telephone: '0655443322', produit: 'Autre', date: addDaysISO(t0, -1), heure: '16:00', personnes: null, prix: 360, acompte: 100, mode: 'retrait', statut: 'prete' },
     ];
+    const texts = LANG === 'ar' ? [
+      { cliente: 'فاطمة بناني', details: 'فانيليا وفراولة، وردي وذهبي، تاج.\n« عيد ميلاد سعيد لينا، 5 سنوات »\nبدون مكسرات.' },
+      { cliente: 'نادية الكتاني', details: 'صينيتان: بريوات، بسطيلة صغيرة، مسمن معمر.', adresse: 'المعاريف، زنقة ابن منير، عمارة 12، الطابق 3' },
+      { cliente: 'ياسمين رامي', details: 'كعكة خطوبة من 3 طوابق، كريمة الزبدة، ورود بيضاء طبيعية.', adresse: 'غوتيي، شارع مولاي يوسف، فيلا 8' },
+      { cliente: 'السيدة العلوي', details: 'كعب غزال 2 كلغ، علبة هدية.' },
+      { cliente: 'خديجة المنصوري', produitDetail: 'كب كيك ×24', details: 'موضوع وحيد القرن، وردي وأبيض.' },
+    ] : [
+      { cliente: 'Fatima Bennani', details: 'Vanille fraises, rose et doré, couronne.\n« Joyeux anniversaire Lina, 5 ans »\nSans fruits à coque.' },
+      { cliente: 'Nadia Kettani', details: '2 plateaux : briouates, pastilla mini, msemen farci.', adresse: 'Maârif, rue Ibnou Mounir, imm. 12, 3e étage' },
+      { cliente: 'Yasmine Rami', details: 'Gâteau de fiançailles 3 étages, crème au beurre, fleurs fraîches blanches.', adresse: 'Gauthier, bd Moulay Youssef, villa 8' },
+      { cliente: 'Mme Alaoui', details: 'Cornes de gazelle 2 kg, boîte cadeau.' },
+      { cliente: 'Khadija Mansouri', produitDetail: 'Cupcakes ×24', details: 'Thème licorne, rose et blanc.' },
+    ];
+    return common.map((c, i) => ({ ...base, ...c, ...texts[i] }));
   }
 
   $('data-samples').addEventListener('click', () => {
     try {
       sampleOrders().forEach(o => Store.add(o));
     } catch {
-      toast('Mémoire du navigateur pleine.');
+      toast(t('toast.memoryFull'));
       return;
     }
-    toast("5 commandes d'exemple ajoutées");
+    toast(t('toast.samplesAdded'));
     go('agenda');
   });
 
@@ -2101,19 +2605,19 @@ const Reglages = (() => {
 
   $('data-export').addEventListener('click', () => {
     const n = exportData(`carnet-patisserie-${todayISO()}.json`);
-    toast(`${n} commande(s) exportée(s)`);
+    toast(t('toast.exported', n));
   });
 
   // Vérifie que le fichier ressemble bien à un export de l'app
   function parseExport(text) {
     let data;
-    try { data = JSON.parse(text); } catch { throw new Error("Ce fichier n'est pas un fichier JSON valide."); }
+    try { data = JSON.parse(text); } catch { throw new Error(t('err.json')); }
     if (!data || data.app !== EXPORT_APP || !Array.isArray(data.commandes)) {
-      throw new Error("Ce fichier n'est pas un export de l'application.");
+      throw new Error(t('err.notExport'));
     }
     const ok = o => o && o.id != null && typeof o.cliente === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.date)
       && /^\d{2}:\d{2}$/.test(o.heure) && typeof o.prix === 'number';
-    if (!data.commandes.every(ok)) throw new Error('Certaines commandes du fichier sont incomplètes.');
+    if (!data.commandes.every(ok)) throw new Error(t('err.incomplete'));
     return data;
   }
 
@@ -2131,10 +2635,10 @@ const Reglages = (() => {
     }
     const current = Store.all().length;
     const ok = await confirmDialog({
-      title: 'Remplacer toutes les données ?',
-      text: `Le fichier contient ${data.commandes.length} commande(s). Les ${current} commande(s) et les réglages actuels seront remplacés. Une sauvegarde des données actuelles sera d'abord téléchargée.`,
-      ok: 'Oui, remplacer',
-      cancel: 'Annuler',
+      title: t('imp.title'),
+      text: t('imp.text', data.commandes.length, current),
+      ok: t('imp.ok'),
+      cancel: t('cancel'),
     });
     if (!ok) return;
     const savedBefore = backupBeforeAction('import');
@@ -2147,44 +2651,46 @@ const Reglages = (() => {
       localStorage.setItem(KEYS.settings, JSON.stringify({ ...Settings.DEFAULTS, ...(data.reglages || {}) }));
     } catch {
       Object.values(KEYS).forEach(k => k in backup ? localStorage.setItem(k, backup[k]) : localStorage.removeItem(k));
-      toast("Import impossible : mémoire du navigateur pleine. Rien n'a été modifié.");
+      toast(t('toast.importFull'));
       return;
     }
+    applyLanguage();   // les réglages importés peuvent changer la langue
     render();
-    toast(`${data.commandes.length} commande(s) importée(s)` + (savedBefore ? ' — sauvegarde téléchargée' : ''));
+    toast(t('toast.imported', data.commandes.length, savedBefore));
   });
 
   /* ---------- Effacement ---------- */
   // Les commandes seules : les réglages et la numérotation sont conservés
   $('data-clear-orders').addEventListener('click', async () => {
     const n = Store.all().length;
-    if (!n) { toast('Aucune commande à effacer'); return; }
+    if (!n) { toast(t('toast.noOrders')); return; }
     const ok = await confirmDialog({
-      title: 'Effacer les commandes ?',
-      text: `Les ${n} commande(s) seront supprimées de ce navigateur. Vos réglages sont conservés. Une sauvegarde sera d'abord téléchargée.`,
-      ok: 'Oui, effacer les commandes',
-      cancel: 'Annuler',
+      title: t('co.title'),
+      text: t('co.text', n),
+      ok: t('co.ok'),
+      cancel: t('cancel'),
     });
     if (!ok) return;
     backupBeforeAction('effacement');
     localStorage.removeItem(KEYS.orders);
-    toast('Commandes effacées — sauvegarde téléchargée');
+    toast(t('toast.ordersCleared'));
   });
 
   // Tout : commandes, réglages et numérotation (repart à #101)
   $('data-clear').addEventListener('click', async () => {
-    if (!hasData()) { toast('Aucune donnée à effacer'); return; }
+    if (!hasData()) { toast(t('toast.noData')); return; }
     const ok = await confirmDialog({
-      title: 'Tout effacer ?',
-      text: `Les ${Store.all().length} commande(s) et les réglages seront supprimés de ce navigateur, et la numérotation repartira à #101. Une sauvegarde sera d'abord téléchargée.`,
-      ok: 'Oui, tout effacer',
-      cancel: 'Annuler',
+      title: t('ca.title'),
+      text: t('ca.text', Store.all().length),
+      ok: t('ca.ok'),
+      cancel: t('cancel'),
     });
     if (!ok) return;
     backupBeforeAction('effacement');
     Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+    applyLanguage();   // les réglages effacés ramènent au français
     render();
-    toast('Toutes les données ont été effacées — sauvegarde téléchargée');
+    toast(t('toast.allCleared'));
   });
 
   return { render };
@@ -2228,8 +2734,7 @@ function replaceRoute(name, id) {
 let currentScreen = null;
 const onEnter = {
   agenda() {
-    const prenom = Settings.get().prenom.trim();
-    document.getElementById('agenda-hello').textContent = prenom ? `Bonjour ${prenom}` : 'Bonjour';
+    document.getElementById('agenda-hello').textContent = t('hello', ownerFirstName());
     Agenda.render();
   },
   nouvelle() { OrderForm.reset(); },
@@ -2274,6 +2779,8 @@ window.addEventListener('hashchange', () => {
 });
 
 history.replaceState({ depth: 0 }, '');
+
+applyLanguage();
 
 /* Service worker (ouverture hors connexion) : seulement en http(s), pas en ouvrant le fichier directement */
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
