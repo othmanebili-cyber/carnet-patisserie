@@ -1,7 +1,7 @@
 /* Service worker : permet d'ouvrir l'app sans connexion.
    Stratégie "réseau d'abord" : quand il y a du réseau, on charge toujours la dernière
    version publiée (pas de version bloquée en cache) ; sinon on sert la copie enregistrée. */
-const CACHE = 'carnet-v1';
+const CACHE = 'carnet-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', event => {
